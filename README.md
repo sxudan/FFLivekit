@@ -10,3 +10,8 @@ This is also to to check how well it does against the existing live streaming pa
 - Customize FFmpeg commands to meet specific streaming requirements.
 - Seamless integration with AVCaptureSession for camera and microphone access.
 - Asynchronous execution for smooth streaming without blocking the main thread.
+
+
+# Limitation of FFmpeg
+
+- Although it supports ```avfoundation``` as an input device, it doesnot provide any way to preview the output of the session. That's the reason I am using ```AVCaptureSession``` and feed the data to ffmpeg using pipes.
