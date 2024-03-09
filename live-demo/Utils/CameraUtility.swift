@@ -29,42 +29,13 @@ class CameraUtility {
             setupAudioEngine()
         }
         
-        // Add observers for AVCaptureSession notifications
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionRuntimeError), name: .AVCaptureSessionRuntimeError, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionWasInterrupted), name: .AVCaptureSessionWasInterrupted, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruptionEnded), name: .AVCaptureSessionInterruptionEnded, object: nil)
     }
     
-    // Handle AVCaptureSession runtime error
-        @objc func sessionRuntimeError(notification: Notification) {
-            if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? Error {
-                print("AVCaptureSession runtime error: \(error.localizedDescription)")
-                // Handle the error as needed
-            }
-        }
-
-        // Handle AVCaptureSession interruption
-        @objc func sessionWasInterrupted(notification: Notification) {
-            if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
-               let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue) {
-                print("AVCaptureSession was interrupted. Reason: \(reason)")
-                // Handle the interruption as needed
-            }
-        }
-
-        // Handle AVCaptureSession interruption ended
-        @objc func sessionInterruptionEnded(notification: Notification) {
-            print("AVCaptureSession interruption ended.")
-            // Handle the interruption end as needed
-        }
-
-        // Remove observers when the view controller is deallocated
-        deinit {
-            NotificationCenter.default.removeObserver(self)
-        }
     
     func attach(view: UIView) {
-        setupCameraPreview(view: view)
+        DispatchQueue.global().async {
+            self.setupCameraPreview(view: view)
+        }
     }
     
     func setDelegate(delegate: AudioVideoDelegate) {
@@ -150,14 +121,16 @@ class CameraUtility {
             
             
             // Set the preview layer to display the camera feed
-            previewLayer.session = session
-            previewLayer.videoGravity = .resizeAspectFill
-            
-            // Add the preview layer to your view's layer
-            view.layer.insertSublayer(previewLayer, at: 0)
-            
-            // Optional: Adjust the frame of the preview layer
-            previewLayer.frame = view.layer.bounds
+            DispatchQueue.main.async {
+                self.previewLayer.session = session
+                self.previewLayer.videoGravity = .resizeAspectFill
+                
+                // Add the preview layer to your view's layer
+                view.layer.insertSublayer(self.previewLayer, at: 0)
+                
+                // Optional: Adjust the frame of the preview layer
+                self.previewLayer.frame = view.layer.bounds
+            }
             
             
             do {
@@ -167,15 +140,15 @@ class CameraUtility {
                 camera.activeVideoMinFrameDuration = desiredFrameRate
                 camera.activeVideoMaxFrameDuration = desiredFrameRate
                 
-                let availableFormats = camera.formats
-                
-                for format in availableFormats {
-                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-                    let width = dimensions.width
-                    let height = dimensions.height
-                    
-                    print("Resolution: \(width) x \(height)")
-                }
+//                let availableFormats = camera.formats
+//                
+//                for format in availableFormats {
+//                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+//                    let width = dimensions.width
+//                    let height = dimensions.height
+//                    
+//                    print("Resolution: \(width) x \(height)")
+//                }
                 
                 camera.unlockForConfiguration()
                 
@@ -192,8 +165,8 @@ class CameraUtility {
             
             // Start the capture session
             do {
-                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default)
-                try AVAudioSession.sharedInstance().setPreferredSampleRate(44100) // Set your preferred sample rate here
+                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoChat)
+                try AVAudioSession.sharedInstance().setPreferredSampleRate(48000) // Set your preferred sample rate here
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
                 print("Failed to set audio session settings: \(error.localizedDescription)")
@@ -202,9 +175,8 @@ class CameraUtility {
             
             
             // Set the session to output video frames
-            DispatchQueue.global().async {
-                session.startRunning()
-            }
+            session.startRunning()
+            
             
         } catch {
             print("Error setting up AVCaptureDeviceInput: \(error)")
@@ -218,6 +190,12 @@ class CameraUtility {
             } catch {
                 print("Error starting audio engine: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    func stopAudioCapture() {
+        if useAudioEngine {
+            audioEngine?.stop()
         }
     }
     

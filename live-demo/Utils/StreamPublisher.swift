@@ -11,7 +11,8 @@ import ffmpegkit
 
 protocol StreamPublisherDelegate {
     func onStats(stats: Statistics)
-    func onRecordingStateChanged(isRecording: Bool)
+    func didVideoRecordingStatusChanged(isVideoRecording: Bool)
+    func didAudioRecordingStatusChanged(isAudioRecording: Bool)
 }
 
 class StreamPublisher: NSObject, AudioVideoDelegate {
@@ -37,12 +38,51 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     var delegate: StreamPublisherDelegate?
     
-    private var isRecording = false
+    private var isVideoRecording = false
+    private var isAudioRecording = false
+    
+    private var isInBackground = false
     
     override init () {
         super.init()
         initFFmpeg()
+        
+        // Add observers for AVCaptureSession notifications
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionRuntimeError), name: .AVCaptureSessionRuntimeError, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionWasInterrupted), name: .AVCaptureSessionWasInterrupted, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruptionEnded), name: .AVCaptureSessionInterruptionEnded, object: nil)
     }
+    
+    // Handle AVCaptureSession runtime error
+        @objc func sessionRuntimeError(notification: Notification) {
+            if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? Error {
+                print("AVCaptureSession runtime error: \(error.localizedDescription)")
+                // Handle the error as needed
+            }
+        }
+
+        // Handle AVCaptureSession interruption
+        @objc func sessionWasInterrupted(notification: Notification) {
+            if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
+               let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue) {
+                print("AVCaptureSession was interrupted. Reason: \(reason)")
+                // Handle the interruption as needed
+                if reasonValue == 1 {
+                    isInBackground = true
+                }
+            }
+        }
+
+        // Handle AVCaptureSession interruption ended
+        @objc func sessionInterruptionEnded(notification: Notification) {
+            print("AVCaptureSession interruption ended.")
+            isInBackground = false
+        }
+
+        // Remove observers when the view controller is deallocated
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
     
     func attach(mediaUtil: CameraUtility) {
         self.cameraUtility = mediaUtil
@@ -94,14 +134,17 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     func stop() {
         running = false
+        cameraUtility?.stopAudioCapture()
         stopTimer()
         closePipes()
         stopFFmpeg()
         self.audioDataBuffer.removeAll()
         self.videoDataBuffer.removeAll()
-        self.isRecording = false
+        self.isVideoRecording = false
+        self.isAudioRecording = false
         DispatchQueue.main.async {
-            self.delegate?.onRecordingStateChanged(isRecording: false)
+            self.delegate?.didVideoRecordingStatusChanged(isVideoRecording: false)
+            self.delegate?.didAudioRecordingStatusChanged(isAudioRecording: false)
         }
     }
     
@@ -124,7 +167,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     private func startTimer() {
         DispatchQueue.global().async {
-            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.feedToVideoPipe), userInfo: nil, repeats: true)
+            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.mux), userInfo: nil, repeats: true)
             RunLoop.current.add(self.videoTimer!, forMode: .default)
             RunLoop.current.run()
         }
@@ -141,7 +184,11 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         videoTimer = nil
         audioTimer = nil
     }
-
+    
+    @objc func mux() {
+        feedToVideoPipe()
+        feedToAudioPipe()
+    }
     
     @objc func feedToVideoPipe() {
 //        print("Feeding video")
@@ -178,7 +225,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     }
     
     private func executeVideo_Audio() {
-        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 44100 -ac 1 -itsoffset -5 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=1080:1920\" -b:v 2M -vsync 1 -f flv \(url!)"
+        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 48000 -ac 1 -itsoffset -5 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=360:640\" -b:v 640k -b:a 64k -vsync 1 -f flv \(url!)"
  
         execute(cmd: cmd)
     }
@@ -188,16 +235,27 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         FFmpegKit.executeAsync(cmd, withCompleteCallback: {session in
             self.stop()
         }, withLogCallback: nil, withStatisticsCallback: {stats in
-            if stats != nil, stats?.getSessionId() != nil {
-                if self.isRecording == false {
+            guard let stats = stats else {
+                return
+            }
+            /// For Video
+            if stats.getVideoFps() > 0 {
+                if self.isVideoRecording == false {
                     DispatchQueue.main.async {
-                        self.delegate?.onRecordingStateChanged(isRecording: true)
+                        self.delegate?.didVideoRecordingStatusChanged(isVideoRecording: true)
                     }
                 }
-                self.isRecording = true
-                DispatchQueue.main.async {
-                    self.delegate?.onStats(stats: stats!)
+                self.isVideoRecording = true
+            } else if stats.getSize() > 0, stats.getVideoFps() == 0 {
+                if self.isAudioRecording == false {
+                    DispatchQueue.main.async {
+                        self.delegate?.didAudioRecordingStatusChanged(isAudioRecording: true)
+                    }
                 }
+                self.isAudioRecording = true
+            }
+            DispatchQueue.main.async {
+                self.delegate?.onStats(stats: stats)
             }
         })
     }
@@ -237,8 +295,8 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
 //            print("Video")
-            if self.running, let data = extractBGRAData(from: sampleBuffer) {
-                if !self.isRecording {
+            if self.running, let data = isInBackground ? Helper.createEmptyRGBAData(width: 1920, height: 1080) : extractBGRAData(from: sampleBuffer) {
+                if !self.isVideoRecording {
                     self.writeToVideoPipe(data: data)
                 } else {
                     self.appendToVideoBuffer(data: data)
@@ -248,7 +306,12 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
 //            print("Audio")
 //            print(sampleBuffer)
             if self.running, let data = convertCMSampleBufferToPCM16Data(sampleBuffer: sampleBuffer) {
-                self.writeToAudioPipe(data: data)
+                if !self.isAudioRecording {
+                    self.writeToAudioPipe(data: data)
+                } else {
+                    self.appendToAudioBuffer(data: data)
+                }
+//                self.writeToAudioPipe(data: data)
 //                self.appendToAudioBuffer(data: data)
             }
         }
@@ -298,7 +361,11 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     func onAudioEngine(data didReceived: Data) {
         if self.running {
-            self.writeToAudioPipe(data: didReceived)
+            if !self.isAudioRecording {
+                self.writeToAudioPipe(data: didReceived)
+            } else {
+                self.appendToAudioBuffer(data: didReceived)
+            }
         }
     }
 }

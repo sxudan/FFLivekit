@@ -17,12 +17,16 @@ enum RecState {
 }
 
 class LiveFeedController: UIViewController, StreamPublisherDelegate {
-   
+    
+    
     @IBOutlet weak var actionBtn: UIControl!
-    let camera = CameraUtility(useAudioEngine: false)
+    let camera = CameraUtility(useAudioEngine: true)
     let publisher = StreamPublisher()
     let url = "rtmp://192.168.1.100:1935/mystream"
     @IBOutlet weak var fpsLabel: UILabel!
+    @IBOutlet weak var videoStsLabel: UILabel!
+    @IBOutlet weak var audioStsLabel: UILabel!
+    
     
     var recState: RecState = .Normal {
         willSet {
@@ -78,14 +82,20 @@ class LiveFeedController: UIViewController, StreamPublisherDelegate {
     }
     
     func onStats(stats: Statistics) {
+//        print("\(stats.getSize()) \(stats.getTime()) \(stats.getSpeed()) \(stats.getBitrate()) \(stats.getVideoFps()) \(stats.getVideoFrameNumber()) \(stats.getVideoQuality())")
         self.fpsLabel.text = "FPS: \(stats.getVideoFps())"
     }
     
-    func onRecordingStateChanged(isRecording: Bool) {
-        if isRecording {
+    func didVideoRecordingStatusChanged(isVideoRecording: Bool) {
+        if isVideoRecording {
             self.recState = .Recording
         } else {
             self.recState = .Normal
         }
+        self.videoStsLabel.text = "Video Recording: \(isVideoRecording)"
+    }
+    
+    func didAudioRecordingStatusChanged(isAudioRecording: Bool) {
+        self.audioStsLabel.text = "Audio Recording: \(isAudioRecording)"
     }
 }

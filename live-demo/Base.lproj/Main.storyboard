@@ -57,20 +57,38 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Audio Recording: " textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="vye-LH-CeQ">
+                                <rect key="frame" x="242" y="149" width="135" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Video Recording: " textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="C1m-8p-sVv">
+                                <rect key="frame" x="242" y="112" width="135" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="kwZ-rb-V7n"/>
                         <color key="backgroundColor" systemColor="systemTealColor"/>
                         <constraints>
+                            <constraint firstItem="C1m-8p-sVv" firstAttribute="top" secondItem="xuG-qI-pAf" secondAttribute="bottom" constant="16" id="1up-RD-AEI"/>
                             <constraint firstAttribute="bottom" secondItem="PY8-eH-C4A" secondAttribute="bottom" id="63L-AJ-wD1"/>
+                            <constraint firstItem="kwZ-rb-V7n" firstAttribute="trailing" secondItem="C1m-8p-sVv" secondAttribute="trailing" constant="16" id="9oR-hd-S2F"/>
                             <constraint firstItem="xuG-qI-pAf" firstAttribute="top" secondItem="kwZ-rb-V7n" secondAttribute="top" constant="16" id="Dcz-JV-98b"/>
                             <constraint firstItem="PY8-eH-C4A" firstAttribute="leading" secondItem="kwZ-rb-V7n" secondAttribute="leading" id="ELi-4g-XZd"/>
+                            <constraint firstItem="kwZ-rb-V7n" firstAttribute="trailing" secondItem="vye-LH-CeQ" secondAttribute="trailing" constant="16" id="Ieg-Dh-3oF"/>
+                            <constraint firstItem="vye-LH-CeQ" firstAttribute="top" secondItem="C1m-8p-sVv" secondAttribute="bottom" constant="16" id="TGv-Ed-OOB"/>
                             <constraint firstItem="PY8-eH-C4A" firstAttribute="trailing" secondItem="kwZ-rb-V7n" secondAttribute="trailing" id="rLN-eM-6Kd"/>
                             <constraint firstItem="kwZ-rb-V7n" firstAttribute="trailing" secondItem="xuG-qI-pAf" secondAttribute="trailing" constant="16" id="z4G-Tw-gSp"/>
                         </constraints>
                     </view>
                     <connections>
                         <outlet property="actionBtn" destination="VeU-qJ-Aww" id="fkf-55-WYF"/>
+                        <outlet property="audioStsLabel" destination="vye-LH-CeQ" id="mbb-2s-x1E"/>
                         <outlet property="fpsLabel" destination="xuG-qI-pAf" id="Cac-Rf-vGb"/>
+                        <outlet property="videoStsLabel" destination="C1m-8p-sVv" id="djm-Wo-OuB"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="KaX-5a-dqz" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
