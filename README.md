@@ -12,9 +12,25 @@ This is also to to check how well it does against the existing live streaming pa
 - Asynchronous execution for smooth streaming without blocking the main thread.
 
 
-# Limitation of FFmpeg
 
-- Although it supports ```avfoundation``` as an input device, it doesnot provide any way to preview the output of the session. That's the reason I am using ```AVCaptureSession``` and feed the data to ffmpeg using pipes.
+# Motivation
+
+I have worked with lots of live streaming apps. I have been using libraries such as HaishinKit and LFLiveKit. I always wonder if we can publish the live feeds using ffmpeg on mobile apps. FFmpeg is indeed capable of live streaming to a server, and it's a commonly used tool for this purpose. FFmpeg is a powerful multimedia processing tool that can capture, encode, and transmit audio and video in real-time. But I was not sure if we could do this on mobile end.
+
+### Stage 1 (AVFoundation)
+
+The FFmpeg avfoundation input format allows you to capture video and audio from macOS and iOS devices using AVFoundation.
+
+```sh
+ffmpeg -f avfoundation -i "0:0" -c:v libx264 -c:a aac -f flv rtmp://your-rtmp-server/app/stream
+```
+
+Although it supports ```avfoundation``` as an input device, it doesn't inherently provide a preview of the camera feed. avfoundation is more focused on capturing and processing audio and video data rather than rendering a live preview.
+
+
+### Stage 2 (Named Pipe)
+
+While doing my research on using named pipe on ffmpeg on iOS. I found a wonderful example related to this done using flutter by [dji_flutter](https://github.com/DragonX-cloud/dji_flutter_plugin/blob/main/example/lib/example.dart) 
 
 
 # Demo
