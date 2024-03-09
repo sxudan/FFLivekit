@@ -50,6 +50,36 @@
             endingLineNumber = "393"
             landmarkName = "startPublish()"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "C81DF94F-B1B2-48F0-A0AF-4B5C69C21592 - 768bad47c1d38d0c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "live_demo.ViewController.startPublish() -&gt; ()"
+                  moduleName = "live-demo"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/xkal/Documents/work/live-demo/live-demo/ViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "393"
+                  endingLineNumber = "393">
+               </Location>
+               <Location
+                  uuid = "C81DF94F-B1B2-48F0-A0AF-4B5C69C21592 - b45755853cc24883"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable () -&gt; () in live_demo.ViewController.startPublish() -&gt; ()"
+                  moduleName = "live-demo"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/xkal/Documents/work/live-demo/live-demo/ViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "394"
+                  endingLineNumber = "394">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy

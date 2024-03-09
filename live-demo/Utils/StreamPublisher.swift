@@ -43,10 +43,11 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     private var isInBackground = false
     
+    var blankFrames: Data?
+    
     override init () {
         super.init()
         initFFmpeg()
-        
         // Add observers for AVCaptureSession notifications
         NotificationCenter.default.addObserver(self, selector: #selector(sessionRuntimeError), name: .AVCaptureSessionRuntimeError, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(sessionWasInterrupted), name: .AVCaptureSessionWasInterrupted, object: nil)
@@ -68,7 +69,12 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
                 print("AVCaptureSession was interrupted. Reason: \(reason)")
                 // Handle the interruption as needed
                 if reasonValue == 1 {
+                    blankFrames = Helper.createEmptyRGBAData(width: 1920, height: 1080)
                     isInBackground = true
+                    if self.running {
+                        self.videoTimer?.invalidate()
+                        self.videoTimer = nil
+                    }
                 }
             }
         }
@@ -77,6 +83,10 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         @objc func sessionInterruptionEnded(notification: Notification) {
             print("AVCaptureSession interruption ended.")
             isInBackground = false
+            blankFrames = nil
+            if self.running {
+                self.startTimer()
+            }
         }
 
         // Remove observers when the view controller is deallocated
@@ -100,13 +110,16 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     func publish(url: String) {
         self.url = url
         self.cameraUtility?.startAudioCapture()
+        print("Audio started")
         self.running = true
         // create a pipe for video
         videoPipe = FFmpegKitConfig.registerNewFFmpegPipe()
         audioPipe = FFmpegKitConfig.registerNewFFmpegPipe()
+        print("Pipes created")
         // open the videopipe so that ffempg doesnot closes when the video pipe receives EOF
         videoFileDescriptor = open(videoPipe!, O_RDWR)
         audioFileDescriptor = open(audioPipe!, O_RDWR)
+        print("Pipes opened")
         /// Start FFMPEG
         background.async {
             self.executeVideo_Audio()
@@ -118,6 +131,10 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         videoFeedThread.sync {
 //            print("appending video___")
             self.videoBufferLock.lock()
+            /// Max bytes buffer 100MB
+            if self.videoDataBuffer.count > (100 * 1000000) {
+                self.videoDataBuffer.removeAll()
+            }
             self.videoDataBuffer.append(data)
             self.videoBufferLock.unlock()
         }
@@ -127,9 +144,14 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         audioFeedThread.async {
 //            print("appending audio___")
             self.audioBufferLock.lock()
+            /// Max bytes buffer 100MB
+            if self.audioDataBuffer.count > (100 * 1000000) {
+                self.audioDataBuffer.removeAll()
+            }
             self.audioDataBuffer.append(data)
             self.audioBufferLock.unlock()
         }
+        print("Audio Buffer \(self.audioDataBuffer)")
     }
     
     func stop() {
@@ -171,11 +193,6 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
             RunLoop.current.add(self.videoTimer!, forMode: .default)
             RunLoop.current.run()
         }
-//        DispatchQueue.global().async {
-//            self.audioTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.feedToAudioPipe), userInfo: nil, repeats: true)
-//            RunLoop.current.add(self.audioTimer!, forMode: .default)
-//            RunLoop.current.run()
-//        }
     }
     
     private func stopTimer() {
@@ -220,13 +237,13 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     }
     
     private func executeAudioOnly() {
-        let cmd = "-f s16le -ar 44100 -ac 1 -i \(audioPipe!) -vn -c:a aac -f rtsp \(url!)"
+        let cmd = "-re -f s16le -ar 48000 -ac 1 -itsoffset -5 -i \(audioPipe!) -vn -c:a aac -b:a 64k -f flv \(url!)"
         execute(cmd: cmd)
     }
     
     private func executeVideo_Audio() {
-        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 48000 -ac 1 -itsoffset -5 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=360:640\" -b:v 640k -b:a 64k -vsync 1 -f flv \(url!)"
- 
+        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 48000 -ac 1 -itsoffset -2 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=360:640\" -b:v 640k -b:a 64k -vsync 1 -f flv \(url!)"
+       
         execute(cmd: cmd)
     }
     
@@ -270,9 +287,9 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
                     fileHandle.write(data)
                 }
                 fileHandle.closeFile()
-//                print("Data written successfully")
+                print("Video written successfully")
             } else {
-                print("Failed to open file handle for writing")
+                print("Failed to open video file handle for writing")
             }
     }
     
@@ -286,16 +303,17 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
                     fileHandle.write(data)
                 }
                 fileHandle.closeFile()
-//                print("Audio written successfully")
+                print("Audio written successfully")
             } else {
-                print("Failed to open file handle for writing")
+                print("Failed to open audio file handle for writing")
             }
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
 //            print("Video")
-            if self.running, let data = isInBackground ? Helper.createEmptyRGBAData(width: 1920, height: 1080) : extractBGRAData(from: sampleBuffer) {
+//            !self.isInBackground,
+            if !self.isInBackground, self.running, let data = isInBackground ? blankFrames : extractBGRAData(from: sampleBuffer) {
                 if !self.isVideoRecording {
                     self.writeToVideoPipe(data: data)
                 } else {

@@ -10,13 +10,15 @@ import CoreGraphics
 
 class Helper {
     static func createEmptyRGBAData(width: Int, height: Int) -> Data {
-        let bytesPerPixel = 4
+        let bytesPerPixel = 4 // Assuming BGRA format (8 bits per channel)
         let bitsPerComponent = 8
+        let bytesPerRow = width * bytesPerPixel
+        let totalBytes = height * bytesPerRow
 
-        let dataSize = width * height * bytesPerPixel
-        var rgbaData = [UInt8](repeating: 0, count: dataSize)
-
-        return Data(bytes: &rgbaData, count: dataSize)
+        // Allocate a single Data object with the total size
+        var pixelData = Data(count: totalBytes * 2)
+        return pixelData
     }
+    
     
 }

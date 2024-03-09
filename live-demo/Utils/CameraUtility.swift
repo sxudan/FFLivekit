@@ -33,8 +33,10 @@ class CameraUtility {
     
     
     func attach(view: UIView) {
+        let session = self.setupCaptureSession(view: view)
         DispatchQueue.global().async {
-            self.setupCaptureSession(view: view)
+            /// Set the session to output video frames
+            session?.startRunning()
         }
     }
     
@@ -85,14 +87,14 @@ class CameraUtility {
         return nil
     }
     
-    private func setupCaptureSession(view: UIView) {
+    private func setupCaptureSession(view: UIView) -> AVCaptureSession? {
         do {
             // Create a session and add the input
             let session = AVCaptureSession()
             /// add camera to session input
             let cameraInput = addCamera(session: session)
             guard let camera = cameraInput?.device else {
-                return
+                return nil
             }
             /// add videooutput as session output
             videoOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as String) : NSNumber(value: kCVPixelFormatType_32BGRA as UInt32),]
@@ -110,12 +112,12 @@ class CameraUtility {
             }
             /// Start the capture session
             do {
-                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoChat)
+                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoChat, options: [.allowAirPlay, .allowBluetooth])
                 try AVAudioSession.sharedInstance().setPreferredSampleRate(48000) // Set your preferred sample rate here
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
                 print("Failed to set audio session settings: \(error.localizedDescription)")
-                return
+                return nil
             }
             /// Set the preview layer to display the camera feed
             DispatchQueue.main.async {
@@ -146,11 +148,7 @@ class CameraUtility {
             let height = dimensions.height
             print("Resolution: \(width) x \(height)")
             
-
-            /// Set the session to output video frames
-            session.startRunning()
-            
-            
+            return session
         } catch {
             print("Error setting up AVCaptureDeviceInput: \(error)")
         }
