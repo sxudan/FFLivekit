@@ -34,7 +34,8 @@ Although it supports ```avfoundation``` as an input device, it doesn't inherentl
 
 While doing my research on using named pipe on ffmpeg on iOS. I found a wonderful example related to this done using flutter by [dji_flutter](https://github.com/DragonX-cloud/dji_flutter_plugin/blob/main/example/lib/example.dart) 
 
-<image src="https://private-user-images.githubusercontent.com/31989781/311412141-3f4fddb3-c38c-47ce-a1a6-80529651ae9d.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MDk5NTkxMTUsIm5iZiI6MTcwOTk1ODgxNSwicGF0aCI6Ii8zMTk4OTc4MS8zMTE0MTIxNDEtM2Y0ZmRkYjMtYzM4Yy00N2NlLWExYTYtODA1Mjk2NTFhZTlkLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDAzMDklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwMzA5VDA0MzMzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTU0ZGE3NTkyMmYwMjViNGViYzNlZDc1MjZkYzA4ZGQ4Y2Q5YWNlZDY3ZWZlNjc1YWQ1YjgxNjllZWJjNzY0MjkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.7UwiIcL2Z1btwWh4-3QdoyxHJlKNr7mVocTrA18kMOM" />
+![image](https://github.com/sxudan/ffmpeg-ios-publisher-example/assets/31989781/b1d39f39-8794-4f39-a1cc-c97243ce7d48)
+
 
 
 You can create a named pipe like following
@@ -93,8 +94,7 @@ This worked very well!!
 
 # Demo
 
-![image](https://github.com/sxudan/ffmpeg-ios-publisher-example/assets/31989781/b1d39f39-8794-4f39-a1cc-c97243ce7d48)
-
+https://private-user-images.githubusercontent.com/31989781/311260826-f0fa60e3-41a7-4ac7-90fb-385a5ab6b97f.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MDk5NjQ0NzcsIm5iZiI6MTcwOTk2NDE3NywicGF0aCI6Ii8zMTk4OTc4MS8zMTEyNjA4MjYtZjBmYTYwZTMtNDFhNy00YWM3LTkwZmItMzg1YTVhYjZiOTdmLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDAzMDklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwMzA5VDA2MDI1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWY2OWM4OTg0ZDIxNzdhNmQ3MTU2Yjk2MDdlZjFhZTAzMjc4ZGM5ZDhiN2NjMDNlMjM3ZDJhZDc4MzMzMWZjMTAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.gmtVos0Xx--lM74gZzrQ_gSwr3lnWqE5uvaMcOisjyk
 
 
 ## Performance compared to HaishinKit 🤔🤔
