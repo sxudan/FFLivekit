@@ -336,26 +336,18 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return nil
         }
-        
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        
         defer {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
         }
-        
         guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
             return nil
         }
-        
-
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        
         let byteBuffer = UnsafeBufferPointer(start: baseAddress.assumingMemoryBound(to: UInt8.self), count: bytesPerRow * height)
-
         let rawPointer = UnsafeRawPointer(byteBuffer.baseAddress!)
-        
         return Data(bytes: rawPointer, count: bytesPerRow * height)
     }
     

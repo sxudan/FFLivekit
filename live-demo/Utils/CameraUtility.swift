@@ -34,7 +34,7 @@ class CameraUtility {
     
     func attach(view: UIView) {
         DispatchQueue.global().async {
-            self.setupCameraPreview(view: view)
+            self.setupCaptureSession(view: view)
         }
     }
     
@@ -42,19 +42,17 @@ class CameraUtility {
         self.sessionOutputDelegate = delegate
         
         videoOutput.setSampleBufferDelegate(self.sessionOutputDelegate, queue: backgroundVideoQueue)
-        
         audioOutput.setSampleBufferDelegate(self.sessionOutputDelegate, queue: backgroundAudioQueue)
     }
     
-    private func addDevice_Camera(session: AVCaptureSession) -> AVCaptureDeviceInput? {
+    private func addCamera(session: AVCaptureSession) -> AVCaptureDeviceInput? {
         do {
-            // Check if the device has a camera
+            /// Check if the device has a camera
             guard let camera = AVCaptureDevice.default(for: .video) else {
                 print("Camera not available")
                 return nil
             }
-            
-            // Create input from the camera
+            /// Create input from the camera
             let input = try AVCaptureDeviceInput(device: camera)
             
             if session.canAddInput(input) {
@@ -63,19 +61,17 @@ class CameraUtility {
             return input
         } catch {
             print(error)
-            
         }
         return nil
     }
     
-    private func addDevice_Microphone(session: AVCaptureSession) -> AVCaptureDeviceInput? {
+    private func addMicrophone(session: AVCaptureSession) -> AVCaptureDeviceInput? {
         do {
             // Check if the device has a microphone
             guard let mic = AVCaptureDevice.default(for: .audio) else {
                 print("Microphone not available")
                 return nil
             }
-            
             // Create input from the camera
             let input = try AVCaptureDeviceInput(device: mic)
             
@@ -85,85 +81,34 @@ class CameraUtility {
             return input
         } catch {
             print(error)
-            
         }
         return nil
     }
     
-    private func setupCameraPreview(view: UIView) {
+    private func setupCaptureSession(view: UIView) {
         do {
             // Create a session and add the input
             let session = AVCaptureSession()
-            
-            let cameraInput = addDevice_Camera(session: session)
-            
-            
+            /// add camera to session input
+            let cameraInput = addCamera(session: session)
             guard let camera = cameraInput?.device else {
                 return
             }
-            
-            if !useAudioEngine {
-                let audioInput = addDevice_Microphone(session: session)
-                
-                if session.canAddOutput(audioOutput) {
-                    session.addOutput(audioOutput)
-                }
-            }
-            
-            
-            
+            /// add videooutput as session output
             videoOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as String) : NSNumber(value: kCVPixelFormatType_32BGRA as UInt32),]
-            
             if session.canAddOutput(videoOutput) {
                 session.addOutput(videoOutput)
                 
             }
-            
-            
-            // Set the preview layer to display the camera feed
-            DispatchQueue.main.async {
-                self.previewLayer.session = session
-                self.previewLayer.videoGravity = .resizeAspectFill
-                
-                // Add the preview layer to your view's layer
-                view.layer.insertSublayer(self.previewLayer, at: 0)
-                
-                // Optional: Adjust the frame of the preview layer
-                self.previewLayer.frame = view.layer.bounds
+            /// add microphone as session input
+            if !useAudioEngine {
+                let audioInput = addMicrophone(session: session)
+                /// add session output
+                if session.canAddOutput(audioOutput) {
+                    session.addOutput(audioOutput)
+                }
             }
-            
-            
-            do {
-                try camera.lockForConfiguration()
-                
-                let desiredFrameRate = CMTimeMake(value: 1, timescale: 30)
-                camera.activeVideoMinFrameDuration = desiredFrameRate
-                camera.activeVideoMaxFrameDuration = desiredFrameRate
-                
-//                let availableFormats = camera.formats
-//                
-//                for format in availableFormats {
-//                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-//                    let width = dimensions.width
-//                    let height = dimensions.height
-//                    
-//                    print("Resolution: \(width) x \(height)")
-//                }
-                
-                camera.unlockForConfiguration()
-                
-            } catch {
-                print("Error accessing video device: \(error)")
-            }
-            
-            let activeFormat = camera.activeFormat.formatDescription
-            let dimensions = CMVideoFormatDescriptionGetDimensions(activeFormat)
-            let width = dimensions.width
-            let height = dimensions.height
-            
-            print("Resolution: \(width) x \(height)")
-            
-            // Start the capture session
+            /// Start the capture session
             do {
                 try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoChat)
                 try AVAudioSession.sharedInstance().setPreferredSampleRate(48000) // Set your preferred sample rate here
@@ -172,9 +117,37 @@ class CameraUtility {
                 print("Failed to set audio session settings: \(error.localizedDescription)")
                 return
             }
+            /// Set the preview layer to display the camera feed
+            DispatchQueue.main.async {
+                self.previewLayer.session = session
+                self.previewLayer.videoGravity = .resizeAspectFill
+                /// Add the preview layer to your view's layer
+                view.layer.insertSublayer(self.previewLayer, at: 0)
+                /// Optional: Adjust the frame of the preview layer
+                self.previewLayer.frame = view.layer.bounds
+            }
             
+            /// set framerate 30
+            do {
+                try camera.lockForConfiguration()
+                
+                let desiredFrameRate = CMTimeMake(value: 1, timescale: 30)
+                camera.activeVideoMinFrameDuration = desiredFrameRate
+                camera.activeVideoMaxFrameDuration = desiredFrameRate
+                camera.unlockForConfiguration()
+                
+            } catch {
+                print("Error accessing video device: \(error)")
+            }
+            /// just print the current resoultion
+            let activeFormat = camera.activeFormat.formatDescription
+            let dimensions = CMVideoFormatDescriptionGetDimensions(activeFormat)
+            let width = dimensions.width
+            let height = dimensions.height
+            print("Resolution: \(width) x \(height)")
             
-            // Set the session to output video frames
+
+            /// Set the session to output video frames
             session.startRunning()
             
             
