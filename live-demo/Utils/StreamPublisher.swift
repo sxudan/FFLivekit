@@ -189,7 +189,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     private func startTimer() {
         DispatchQueue.global().async {
-            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.mux), userInfo: nil, repeats: true)
+            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.feedToVideoPipe), userInfo: nil, repeats: true)
             RunLoop.current.add(self.videoTimer!, forMode: .default)
             RunLoop.current.run()
         }
@@ -202,6 +202,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         audioTimer = nil
     }
     
+    /// Not using anymore
     @objc func mux() {
         feedToVideoPipe()
         feedToAudioPipe()
@@ -242,7 +243,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     }
     
     private func executeVideo_Audio() {
-        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 48000 -ac 1 -itsoffset -2 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=360:640\" -b:v 640k -b:a 64k -vsync 1 -f flv \(url!)"
+        let cmd = "-re -f rawvideo -pixel_format bgra -video_size 1920x1080 -framerate 30 -i \(videoPipe!) -f s16le -ar 48000 -ac 1 -itsoffset -5 -i \(audioPipe!) -framerate 30 -pixel_format yuv420p -c:v h264 -c:a aac -vf \"transpose=1,scale=360:640\" -b:v 640k -b:a 64k -vsync 1 -f flv \(url!)"
        
         execute(cmd: cmd)
     }
@@ -312,7 +313,6 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
 //            print("Video")
-//            !self.isInBackground,
             if !self.isInBackground, self.running, let data = isInBackground ? blankFrames : extractBGRAData(from: sampleBuffer) {
                 if !self.isVideoRecording {
                     self.writeToVideoPipe(data: data)
@@ -371,11 +371,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     func onAudioEngine(data didReceived: Data) {
         if self.running {
-            if !self.isAudioRecording {
-                self.writeToAudioPipe(data: didReceived)
-            } else {
-                self.appendToAudioBuffer(data: didReceived)
-            }
+            self.writeToAudioPipe(data: didReceived)
         }
     }
 }
