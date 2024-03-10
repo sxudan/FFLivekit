@@ -113,6 +113,5 @@ https://private-user-images.githubusercontent.com/31989781/311260826-f0fa60e3-41
 # TODO
 
 - CPU Optimization
-- Continue live streaming when app is put in background (Audio)
 
 
