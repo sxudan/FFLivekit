@@ -91,6 +91,28 @@ let audioFileDescriptor = open(audioPipe!, O_RDWR)
 This worked very well!!
 
 
+# Usage
+
+```Swift
+let cameraSource = CameraSource(position: .front)
+let microphoneSource = MicrophoneSource()
+let ffLiveKit = FFLiveKit()
+```
+
+```Swift
+try? ffLiveKit.connect(connection: RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935"))
+ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource)
+cameraSource.startPreview(previewView: self.view)
+ffLiveKit.prepare(delegate: self)
+```
+
+```Swift
+if !isRecording {
+    try? ffLiveKit.publish(name: "mystream")
+} else {
+    ffLiveKit.stop()
+}
+```
 
 # Demo
 
