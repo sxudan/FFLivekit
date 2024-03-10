@@ -9,9 +9,10 @@ import AVFoundation
 import ffmpegkit
 
 enum RecordingType {
-    case Audio
-    case Video
-    case Both
+    case Microphone
+    case Camera
+    case Camera_Microphone
+    case File
 }
 
 class FFStat {
@@ -57,28 +58,27 @@ protocol FFmpegUtilsDelegate {
     func FFmpegUtils(onStats stats: FFStat)
 }
 
-class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
-    
+
+struct FFmpegOptions {
     /// input settings
-    var inputVideoFileType = "rawvideo"
-    var inputVideoPixelFormat = "bgra"
-    var inputVideoSize = (1920, 1080)
-    
-    
-    var inputAudioFileType = "s16le"
-    var inputAudioRate = 48000
-    var inputAudioChannel = 1
-    var inputAudioItsOffset = -5
-    
-    var outputVideoFramerate = 30
-    var outputVideoCodec = "h264"
-    var outputVideoPixelFormat = "yuv420p"
-    var outputVideoSize = (360, 640)
-    var outputVideoBitrate = "640k"
-    
-    var outputAudioBitrate = "64k"
-    var outputAudioCodec = "aac"
-    
+    var inputVideoFileType: String
+    var inputVideoPixelFormat: String
+    var inputVideoSize: (Int, Int)
+    var inputAudioFileType: String
+    var inputAudioRate: Int
+    var inputAudioChannel: Int
+    var inputAudioItsOffset: Int
+    var outputVideoFramerate: Int
+    var outputVideoCodec: String
+    var outputVideoPixelFormat: String
+    var outputVideoSize: (Int, Int)
+    var outputVideoBitrate: String
+    var outputAudioBitrate: String
+    var outputAudioCodec: String
+    var inputFilePath: String
+}
+
+class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     
     var audioPipe: String?
     var videoPipe: String?
@@ -86,6 +86,9 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     var outputFormat = ""
     var baseUrl = ""
     var streamName: String?
+    
+    let options: FFmpegOptions!
+    
     
     var url: String {
         get {
@@ -107,7 +110,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     private var videoFileDescriptor: Int32!
     private var audioFileDescriptor: Int32!
     
-    var recordingType = RecordingType.Both
+    var recordingType = RecordingType.Camera_Microphone
     
     /// threads
     private let background = DispatchQueue.global(qos: .background)
@@ -119,7 +122,8 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     
     private var delegate: FFmpegUtilsDelegate?
     
-    init(outputFormat: String, url: String, delegate: FFmpegUtilsDelegate?) {
+    init(outputFormat: String, url: String,options: FFmpegOptions, delegate: FFmpegUtilsDelegate?) {
+        self.options = options
         super.init()
         self.outputFormat = outputFormat
         self.baseUrl = url
@@ -141,39 +145,39 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     }
     
     // Handle AVCaptureSession runtime error
-        @objc func sessionRuntimeError(notification: Notification) {
-            if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? Error {
-                print("AVCaptureSession runtime error: \(error.localizedDescription)")
-                // Handle the error as needed
+    @objc func sessionRuntimeError(notification: Notification) {
+        if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? Error {
+            print("AVCaptureSession runtime error: \(error.localizedDescription)")
+            // Handle the error as needed
+        }
+    }
+    
+    // Handle AVCaptureSession interruption
+    @objc func sessionWasInterrupted(notification: Notification) {
+        if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
+           let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue) {
+            print("AVCaptureSession was interrupted. Reason: \(reason)")
+            // Handle the interruption as needed
+            if reasonValue == 1 {
+                blankFrames = BufferConverter.createEmptyRGBAData(width: 1920, height: 1080)
+                isInBackground = true
             }
         }
-
-        // Handle AVCaptureSession interruption
-        @objc func sessionWasInterrupted(notification: Notification) {
-            if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
-               let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue) {
-                print("AVCaptureSession was interrupted. Reason: \(reason)")
-                // Handle the interruption as needed
-                if reasonValue == 1 {
-                    blankFrames = BufferConverter.createEmptyRGBAData(width: 1920, height: 1080)
-                    isInBackground = true
-                }
-            }
-        }
-
-        // Handle AVCaptureSession interruption ended
-        @objc func sessionInterruptionEnded(notification: Notification) {
-            print("AVCaptureSession interruption ended.")
-            isInBackground = false
-            blankFrames = nil
-            clearVideoBuffer()
-        }
-
-        // Remove observers when the view controller is deallocated
-        deinit {
-            NotificationCenter.default.removeObserver(self)
-            videoDataBuffer.removeAll()
-        }
+    }
+    
+    // Handle AVCaptureSession interruption ended
+    @objc func sessionInterruptionEnded(notification: Notification) {
+        print("AVCaptureSession interruption ended.")
+        isInBackground = false
+        blankFrames = nil
+        clearVideoBuffer()
+    }
+    
+    // Remove observers when the view controller is deallocated
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        videoDataBuffer.removeAll()
+    }
     
     
     var recordingState: RecordingState = .Normal {
@@ -191,12 +195,14 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
                 /// initialize pipes
                 createPipes()
                 background.async {
-                    if self.recordingType == .Both {
+                    if self.recordingType == .Camera_Microphone {
                         self.executeVideo_Audio()
-                    } else if self.recordingType == .Video {
+                    } else if self.recordingType == .Camera {
                         self.executeVideoOnly()
-                    } else if self.recordingType == .Audio {
+                    } else if self.recordingType == .Microphone {
                         self.executeAudioOnly()
+                    } else if self.recordingType == .File {
+                        self.executeFile()
                     }
                 }
                 startTimer()
@@ -219,14 +225,16 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         }
     }
     
-    func start(videoRec: Bool = true, audioRec: Bool = true, streamName: String?) {
+    func start(videoRec: Bool = true, audioRec: Bool = true, fileRec: Bool, streamName: String?) {
         self.streamName = streamName
         if videoRec && audioRec {
-            self.recordingType = .Both
+            self.recordingType = .Camera_Microphone
         } else if videoRec {
-            self.recordingType = .Video
+            self.recordingType = .Camera
         } else if audioRec {
-            self.recordingType = .Audio
+            self.recordingType = .Microphone
+        } else if fileRec {
+            self.recordingType = .File
         }
         recordingState = .RequestRecording
     }
@@ -343,19 +351,19 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     }
     
     private func generateVideoInputCommand() -> String {
-        return "-f \(inputVideoFileType) -pixel_format \(inputVideoPixelFormat) -video_size \(inputVideoSize.0)x\(inputVideoSize.1) -framerate 30 -i \(videoPipe!)"
+        return "-f \(options.inputVideoFileType) -pixel_format \(options.inputVideoPixelFormat) -video_size \(options.inputVideoSize.0)x\(options.inputVideoSize.1) -framerate 30 -i \(videoPipe!)"
     }
     
     private func generateAudioInputCommand() -> String {
-        return "-f \(inputAudioFileType) -ar \(inputAudioRate) -ac \(inputAudioChannel) -itsoffset \(inputAudioItsOffset) -i \(audioPipe!)"
+        return "-f \(options.inputAudioFileType) -ar \(options.inputAudioRate) -ac \(options.inputAudioChannel) -itsoffset \(options.inputAudioItsOffset) -i \(audioPipe!)"
     }
     
     private func generateVideoOutputCommand() -> String {
-        return "-framerate \(outputVideoFramerate) -pixel_format \(outputVideoPixelFormat) -c:v \(outputVideoCodec) -vf \"transpose=1,scale=\(outputVideoSize.0):\(outputVideoSize.1)\" -b:v \(outputVideoBitrate)"
+        return "-framerate \(options.outputVideoFramerate) -pixel_format \(options.outputVideoPixelFormat) -c:v \(options.outputVideoCodec) -vf \"transpose=1,scale=\(options.outputVideoSize.0):\(options.outputVideoSize.1)\" -b:v \(options.outputVideoBitrate)"
     }
     
     private func generateAudioOutputCommand() -> String {
-        return "-c:a \(outputAudioCodec) -b:a \(outputAudioBitrate)"
+        return "-c:a \(options.outputAudioCodec) -b:a \(options.outputAudioBitrate)"
     }
     
     private func executeVideoOnly() {
@@ -368,55 +376,70 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         execute(cmd: cmd)
     }
     
+    private func generateFileInputCommand() -> String {
+        return "-f \(options.inputVideoFileType) -i \(options.inputFilePath)"
+    }
+    
+    private func generateFileOutputCommand() -> String {
+        return "-c:v \(options.outputVideoCodec) -c:a \(options.outputAudioCodec)"
+    }
+    
     private func executeVideo_Audio() {
         let cmd = "-re \(generateVideoInputCommand()) \(generateAudioInputCommand()) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \(url)"
         
         execute(cmd: cmd)
     }
     
+    private func executeFile() {
+        let cmd = "-re \(generateFileInputCommand()) \(generateFileOutputCommand()) -f \(outputFormat) \(url)"
+        execute(cmd: cmd)
+    }
+    
     private func execute(cmd: String) {
         print("Executing \(cmd)..........")
-            FFmpegKit.executeAsync(cmd, withCompleteCallback: {session in
-                self.stop()
-            }, withLogCallback: nil, withStatisticsCallback: {stats in
-                guard let stats = stats else {
-                    return
-                }
-                /// For Video
-                if stats.getVideoFps() > 0 {
-                    if self.isVideoRecording == false {
-                        DispatchQueue.main.async {
-//                            self.delegate?.didVideoRecordingStatusChanged(isVideoRecording: true)
-                        }
-                    }
-                    self.isVideoRecording = true
-                } else if stats.getSize() > 0, stats.getVideoFps() == 0 {
-                    if self.isAudioRecording == false {
-                        DispatchQueue.main.async {
-//                            self.delegate?.didAudioRecordingStatusChanged(isAudioRecording: true)
-                        }
-                    }
-                    self.isAudioRecording = true
-                }
-                if self.recordingState == .RequestRecording {
-                    if self.recordingType == .Both {
-                        if self.isVideoRecording && self.isAudioRecording {
-                            self.recordingState = .Recording
-                        }
-                    } else if self.recordingType == .Audio {
-                        if self.isAudioRecording {
-                            self.recordingState = .Recording
-                        }
-                    } else if self.recordingType == .Video {
-                        if self.isVideoRecording {
-                            self.recordingState = .Recording
-                        }
+        FFmpegKit.executeAsync(cmd, withCompleteCallback: {session in
+            self.stop()
+        }, withLogCallback: nil, withStatisticsCallback: {stats in
+            guard let stats = stats else {
+                return
+            }
+            /// For Video
+            if stats.getVideoFps() > 0 {
+                if self.isVideoRecording == false {
+                    DispatchQueue.main.async {
+                        //                            self.delegate?.didVideoRecordingStatusChanged(isVideoRecording: true)
                     }
                 }
-                DispatchQueue.main.async {
-                    self.delegate?.FFmpegUtils(onStats: FFStat(stat: stats, isVideoRecording: self.isVideoRecording, isAudioRecording: self.isAudioRecording))
+                self.isVideoRecording = true
+            } else if stats.getSize() > 0, stats.getVideoFps() == 0 {
+                if self.isAudioRecording == false {
+                    DispatchQueue.main.async {
+                        //                            self.delegate?.didAudioRecordingStatusChanged(isAudioRecording: true)
+                    }
                 }
-            })
+                self.isAudioRecording = true
+            }
+            if self.recordingState == .RequestRecording {
+                if self.recordingType == .Camera_Microphone {
+                    if self.isVideoRecording && self.isAudioRecording {
+                        self.recordingState = .Recording
+                    }
+                } else if self.recordingType == .Microphone {
+                    if self.isAudioRecording {
+                        self.recordingState = .Recording
+                    }
+                } else if self.recordingType == .Camera {
+                    if self.isVideoRecording {
+                        self.recordingState = .Recording
+                    }
+                } else if self.recordingType == .File {
+                    self.recordingState = .Recording
+                }
+            }
+            DispatchQueue.main.async {
+                self.delegate?.FFmpegUtils(onStats: FFStat(stat: stats, isVideoRecording: self.isVideoRecording, isAudioRecording: self.isAudioRecording))
+            }
+        })
     }
     
     func _CameraSource(onData: Data) {

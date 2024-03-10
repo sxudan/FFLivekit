@@ -14,7 +14,7 @@ protocol CameraSourceDelegate {
     func _CameraSource(switchEnded: Bool)
 }
 
-class CameraSource: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     let videoOutput = AVCaptureVideoDataOutput();
     private let previewLayer = AVCaptureVideoPreviewLayer()
@@ -26,7 +26,7 @@ class CameraSource: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var currentCameraPosition: AVCaptureDevice.Position?
     
     init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080) {
-        super.init()
+        super.init(fileType: "rawvideo")
         session = setupCaptureSession(position: position, preset: preset)
         ///set delegate
         videoOutput.setSampleBufferDelegate(self, queue: backgroundVideoQueue)
