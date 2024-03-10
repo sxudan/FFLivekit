@@ -15,15 +15,16 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     @IBOutlet weak var audioRecLabel: UILabel!
     @IBOutlet weak var videoRecLabel: UILabel!
     
-    let cameraSource = CameraSource(position: .front)
+    let cameraSource = CameraSource(position: .front, preset: .hd1280x720)
     let microphoneSource = MicrophoneSource()
+    let httpSource = FileSource(url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
     let ffLiveKit = FFLiveKit()
     var isRecording = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
         try? ffLiveKit.connect(connection: RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935"))
-        ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource)
+        ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource, file: nil)
         cameraSource.startPreview(previewView: self.view)
         ffLiveKit.prepare(delegate: self)
         initStartActionBtn()

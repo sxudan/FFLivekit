@@ -11,13 +11,14 @@ protocol MicrophoneSourceDelegate {
     func _MicrophoneSource(onData: Data)
 }
 
-class MicrophoneSource {
+class MicrophoneSource: Source {
     
     private var audioEngine: AVAudioEngine?
     let backgroundAudioQueue = DispatchQueue.global(qos: .background)
     var delegate: MicrophoneSourceDelegate?
     
     init() {
+        super.init(fileType: "s16le")
         setupSession()
         setupAudioEngine()
     }
