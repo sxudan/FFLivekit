@@ -48,7 +48,6 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     override init () {
         super.init()
-        blankFrames = Helper.createEmptyRGBAData(width: 1920, height: 1080)
         initFFmpeg()
         // Add observers for AVCaptureSession notifications
         NotificationCenter.default.addObserver(self, selector: #selector(sessionRuntimeError), name: .AVCaptureSessionRuntimeError, object: nil)
