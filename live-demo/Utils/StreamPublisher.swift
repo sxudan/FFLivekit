@@ -45,6 +45,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     var blankFrames: Data?
     
+    
     override init () {
         super.init()
         initFFmpeg()
@@ -71,10 +72,6 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
                 if reasonValue == 1 {
                     blankFrames = Helper.createEmptyRGBAData(width: 1920, height: 1080)
                     isInBackground = true
-                    if self.running {
-                        self.videoTimer?.invalidate()
-                        self.videoTimer = nil
-                    }
                 }
             }
         }
@@ -84,9 +81,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
             print("AVCaptureSession interruption ended.")
             isInBackground = false
             blankFrames = nil
-            if self.running {
-                self.startTimer()
-            }
+            clearVideoBuffer()
         }
 
         // Remove observers when the view controller is deallocated
@@ -140,6 +135,12 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         }
     }
     
+    func clearVideoBuffer() {
+        self.videoBufferLock.lock()
+        self.videoDataBuffer.removeAll()
+        self.videoBufferLock.unlock()
+    }
+    
     func appendToAudioBuffer(data: Data) {
         audioFeedThread.async {
 //            print("appending audio___")
@@ -189,7 +190,7 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
     
     private func startTimer() {
         DispatchQueue.global().async {
-            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.feedToVideoPipe), userInfo: nil, repeats: true)
+            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.handleFeed), userInfo: nil, repeats: true)
             RunLoop.current.add(self.videoTimer!, forMode: .default)
             RunLoop.current.run()
         }
@@ -200,6 +201,19 @@ class StreamPublisher: NSObject, AudioVideoDelegate {
         audioTimer?.invalidate()
         videoTimer = nil
         audioTimer = nil
+    }
+    
+    
+    @objc func handleFeed() {
+        if isInBackground {
+            self.appendToVideoBuffer(data: self.blankFrames!)
+            if self.videoDataBuffer.count > 10*1000000 {
+                print("Flushing....")
+                self.feedToVideoPipe()
+            }
+        } else {
+            feedToVideoPipe()
+        }
     }
     
     /// Not using anymore
