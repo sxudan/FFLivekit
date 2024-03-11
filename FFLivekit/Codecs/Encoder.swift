@@ -8,7 +8,6 @@
 import Foundation
 
 public class Encoder: FFmpegBlock  {
-    override init() {}
     
     init(str: String) {
         super.init()

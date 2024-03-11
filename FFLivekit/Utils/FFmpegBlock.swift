@@ -8,5 +8,5 @@
 import Foundation
 
 public class FFmpegBlock: NSObject {
-    var command: String = ""
+    public var command: String = ""
 }

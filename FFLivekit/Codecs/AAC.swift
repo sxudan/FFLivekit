@@ -8,8 +8,7 @@
 import Foundation
 
 public class AACEncoder: Encoder {
-    public override init() {
-        super.init()
-        self.command = "-c:a aac"
+    public init() {
+        super.init(str: "-c:a aac")
     }
 }
