@@ -17,7 +17,7 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     
     let cameraSource = CameraSource(position: .front, preset: .hd1280x720)
     let microphoneSource = MicrophoneSource()
-    let httpSource = FileSource(url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+    let fileSource = FileSource(filetype: "rtsp", url: "rtsp://192.168.1.100:8554/mystream1")
     let ffLiveKit = FFLiveKit()
     var isRecording = false
     

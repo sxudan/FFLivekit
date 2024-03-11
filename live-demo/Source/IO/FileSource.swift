@@ -10,8 +10,8 @@ import Foundation
 class FileSource: Source {
     let path: String
     
-    init(url: String) {
+    init(filetype: String, url: String) {
         self.path = url
-        super.init(fileType: "mp4")
+        super.init(fileType: filetype)
     }
 }
