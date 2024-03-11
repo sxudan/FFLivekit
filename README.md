@@ -40,7 +40,8 @@ Others minor features
 ```Swift
 let cameraSource = CameraSource(position: .front)
 let microphoneSource = MicrophoneSource()
-let ffLiveKit = FFLiveKit()
+/// add options
+let ffLiveKit = FFLiveKit(options: [.outputVideoSize((360, 640)), .outputVideoBitrate("400k")])
 ```
 
 ### Initialize the connections according to your need
@@ -58,7 +59,7 @@ try! ffLiveKit.connect(connection: rtmpConnection)
 
 ### Add source
 ```Swift
-ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource)
+ffLiveKit.addSources(sources: [cameraSource, microphoneSource])
 cameraSource.startPreview(previewView: self.view)
 ffLiveKit.prepare(delegate: self)
 ```
@@ -67,7 +68,7 @@ ffLiveKit.prepare(delegate: self)
 
 ```Swift
 if !isRecording {
-    try? ffLiveKit.publish(name: "mystream")
+    try? ffLiveKit.publish()
 } else {
     ffLiveKit.stop()
 }
@@ -79,6 +80,27 @@ if !isRecording {
 func _FFLiveKit(didChange status: RecordingState)
 func _FFLiveKit(onStats stats: FFStat)
 func _FFLiveKit(onError error: String)
+```
+
+### Options
+
+```Swift
+public enum FFLivekitSettings {
+    case outputVideoFramerate(Int)
+    case outputVideoPixelFormat(String)
+    case outputVideoSize((Int, Int))
+    /// example "500k" or "2M"
+    case outputVideoBitrate(String)
+    /// example "128k"
+    case outputAudioBitrate(String)
+
+    /// nil to no transpose
+    /// 0 - Rotate 90 degrees counterclockwise and flip vertically.
+    ///1 - Rotate 90 degrees clockwise.
+    /// 2 - Rotate 90 degrees counterclockwise.
+    /// 3 - Rotate 90 degrees clockwise and flip vertically.
+    case outputVideoTranspose(Int?)
+}
 ```
 
 # Demo
