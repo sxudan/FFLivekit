@@ -26,10 +26,8 @@ public class FFStat {
     public let quality: Float
     public let frameNumber: Int32
     public let sessionId: Int
-    public let isVideoRecording: Bool
-    public let isAudioRecording: Bool
     
-    init(stat: Statistics, isVideoRecording: Bool, isAudioRecording: Bool) {
+    init(stat: Statistics) {
         bitrate = stat.getBitrate()
         size = stat.getSize()
         time = stat.getTime()
@@ -39,8 +37,6 @@ public class FFStat {
         quality = stat.getVideoQuality()
         frameNumber = stat.getVideoFrameNumber()
         sessionId = stat.getSessionId()
-        self.isAudioRecording = isAudioRecording
-        self.isVideoRecording = isVideoRecording
     }
     
     
@@ -59,28 +55,75 @@ public protocol FFmpegUtilsDelegate {
     func _FFLiveKit(onError error: String)
 }
 
+public enum FFLivekitSettings {
+    case outputVideoFramerate(Int)
+    case outputVideoPixelFormat(String)
+    case outputVideoSize((Int, Int))
+    /// example "500k" or "2M"
+    case outputVideoBitrate(String)
+    /// example "128k"
+    case outputAudioBitrate(String)
+
+    /// nil to no transpose
+    /// 0 - Rotate 90 degrees counterclockwise and flip vertically.
+    ///1 - Rotate 90 degrees clockwise.
+    /// 2 - Rotate 90 degrees counterclockwise.
+    /// 3 - Rotate 90 degrees clockwise and flip vertically.
+    case outputVideoTranspose(Int?)
+}
+
 
 struct FFmpegOptions {
     /// input settings
-    var inputVideoFileType: String
-    var inputVideoPixelFormat: String
-    var inputVideoSize: (Int, Int)
-    var inputAudioFileType: String
-    var inputAudioRate: Int
-    var inputAudioChannel: Int
-    var inputAudioItsOffset: Int
     var outputVideoFramerate: Int
-    var outputVideoCodec: String
     var outputVideoPixelFormat: String
     var outputVideoSize: (Int, Int)
     var outputVideoBitrate: String
     var outputAudioBitrate: String
-    var outputAudioCodec: String
-    var inputFilePath: String
+    var outputVideoTranspose: Int?
+    
+    init(outputVideoFramerate: Int, outputVideoPixelFormat: String, outputVideoSize: (Int, Int), outputVideoBitrate: String, outputAudioBitrate: String, outputVideoTranspose: Int?) {
+        self.outputVideoFramerate = outputVideoFramerate
+        self.outputVideoPixelFormat = outputVideoPixelFormat
+        self.outputVideoSize = outputVideoSize
+        self.outputVideoBitrate = outputVideoBitrate
+        self.outputAudioBitrate = outputAudioBitrate
+        self.outputVideoTranspose = outputVideoTranspose
+    }
+    
+    init(settings: [FFLivekitSettings]) {
+        self = FFmpegOptions.shared()
+
+        for setting in settings {
+            switch setting {
+            case .outputAudioBitrate(let value):
+                self.outputAudioBitrate = value
+                break
+            case .outputVideoBitrate(let value):
+                self.outputVideoBitrate = value
+                break
+            case .outputVideoSize(let value):
+                self.outputVideoSize = value
+            case .outputVideoFramerate(let value):
+                self.outputVideoFramerate = value
+            case .outputVideoPixelFormat(let value):
+                self.outputVideoPixelFormat = value
+            case .outputVideoTranspose(let value):
+                self.outputVideoTranspose = value
+            }
+        }
+    }
+    
+    public static func shared() -> FFmpegOptions {
+        let option = FFmpegOptions(outputVideoFramerate: 30, outputVideoPixelFormat: "yuv420p", outputVideoSize: (1280, 720), outputVideoBitrate: "640k", outputAudioBitrate: "64k", outputVideoTranspose: 1)
+        return option
+    }
+    
 }
 
-class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
-    
+class FFmpegUtils: NSObject, SourceDelegate {
+  
+  
     var audioPipe: String?
     var videoPipe: String?
     
@@ -97,30 +140,36 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         }
     }
     
-    var running = false
+    var enableWritingToPipe = false
     var isInBackground = false
-    var isVideoRecording = false
-    var isAudioRecording = false
     
     private var videoTimer: Timer?
     private var blankFrames: Data?
     private var videoFileDescriptor: Int32!
     private var audioFileDescriptor: Int32!
     
-    var recordingType = RecordingType.Camera_Microphone
+//    var recordingType = RecordingType.Camera_Microphone
+    
+    var inputCommands: [String] = []
+//    var outputCommands: [String] = []
+    var encoders: [String] = []
     
     /// threads
     private let background = DispatchQueue.global(qos: .background)
     private let videoFeedThread = DispatchQueue.global(qos: .background)
+    private let audioFeedThread = DispatchQueue.global(qos: .background)
     
     /// buffers and locks
     private let videoBufferLock = NSLock()
     private var videoDataBuffer = Data()
     
+    private let audioBufferLock = NSLock()
+    private var audioDataBuffer = Data()
+    
     private var delegate: FFmpegUtilsDelegate?
     
-    init(outputFormat: String, url: String, options: FFmpegOptions, delegate: FFmpegUtilsDelegate?) {
-        self.options = options
+    init(outputFormat: String, url: String, delegate: FFmpegUtilsDelegate?, options: [FFLivekitSettings]) {
+        self.options = FFmpegOptions(settings: options)
         super.init()
         self.outputFormat = outputFormat
         self.baseUrl = url
@@ -168,6 +217,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         isInBackground = false
         blankFrames = nil
         clearVideoBuffer()
+        clearAudioBuffer()
     }
     
     // Remove observers when the view controller is deallocated
@@ -184,36 +234,29 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
             }
             switch newValue {
             case .Normal:
-                running = false
+                enableWritingToPipe = false
                 break
             case .RequestRecording:
                 clearVideoBuffer()
-                running = true
+                clearAudioBuffer()
+                enableWritingToPipe = true
                 /// initialize pipes
                 createPipes()
                 background.async {
-                    if self.recordingType == .Camera_Microphone {
-                        self.executeVideo_Audio()
-                    } else if self.recordingType == .Camera {
-                        self.executeVideoOnly()
-                    } else if self.recordingType == .Microphone {
-                        self.executeAudioOnly()
-                    } else if self.recordingType == .File {
-                        self.executeFile()
-                    }
+                    self.executeCommand()
                 }
                 startTimer()
                 break
             case .Recording:
-                running = true
+                enableWritingToPipe = true
                 break
             case .RequestStop:
-                running = false
+                enableWritingToPipe = false
                 stopTimer()
                 closePipes()
                 clearVideoBuffer()
+                clearAudioBuffer()
                 FFmpegKit.cancel()
-                clearVideoBuffer()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
                     self.recordingState = .Normal
                 })
@@ -222,16 +265,9 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         }
     }
     
-    func start(videoRec: Bool = true, audioRec: Bool = true, fileRec: Bool) {
-        if videoRec && audioRec {
-            self.recordingType = .Camera_Microphone
-        } else if videoRec {
-            self.recordingType = .Camera
-        } else if audioRec {
-            self.recordingType = .Microphone
-        } else if fileRec {
-            self.recordingType = .File
-        }
+    func start(inputcommands: [String], encoders: [String]) {
+        self.inputCommands = inputcommands
+        self.encoders = encoders
         recordingState = .RequestRecording
     }
     
@@ -246,7 +282,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     
     private func startTimer() {
         DispatchQueue.global().async {
-            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.005, target: self, selector: #selector(self.handleFeed), userInfo: nil, repeats: true)
+            self.videoTimer = Timer.scheduledTimer(timeInterval: 0.010, target: self, selector: #selector(self.handleFeed), userInfo: nil, repeats: true)
             RunLoop.current.add(self.videoTimer!, forMode: .default)
             RunLoop.current.run()
         }
@@ -261,6 +297,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
             }
         } else {
             feedToVideoPipe()
+            feedToAudioPipe()
         }
     }
     
@@ -294,6 +331,18 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
             }
             self.videoDataBuffer.append(data)
             self.videoBufferLock.unlock()
+        }
+    }
+    
+    func appendToAudioBuffer(data: Data) {
+        audioFeedThread.sync {
+            self.audioBufferLock.lock()
+            /// Max bytes buffer 100MB
+            if self.audioDataBuffer.count > (50 * 1000000) {
+                self.audioDataBuffer.removeAll()
+            }
+            self.audioDataBuffer.append(data)
+            self.audioBufferLock.unlock()
         }
     }
     
@@ -340,56 +389,45 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         self.videoBufferLock.unlock()
     }
     
+    @objc func feedToAudioPipe() {
+        //        print("Feeding video")
+        self.audioBufferLock.lock()
+        // Feed video
+        if !self.audioDataBuffer.isEmpty {
+            self.writeToAudioPipe(data: self.audioDataBuffer)
+            self.audioDataBuffer.removeAll()
+        }
+        self.audioBufferLock.unlock()
+    }
+    
     func clearVideoBuffer() {
         self.videoBufferLock.lock()
         self.videoDataBuffer.removeAll()
         self.videoBufferLock.unlock()
     }
     
-    private func generateVideoInputCommand() -> String {
-        return "-f \(options.inputVideoFileType) -pixel_format \(options.inputVideoPixelFormat) -video_size \(options.inputVideoSize.0)x\(options.inputVideoSize.1) -framerate 30 -i \(videoPipe!)"
+    func clearAudioBuffer() {
+        self.audioBufferLock.lock()
+        self.audioDataBuffer.removeAll()
+        self.audioBufferLock.unlock()
     }
     
-    private func generateAudioInputCommand() -> String {
-        return "-f \(options.inputAudioFileType) -ar \(options.inputAudioRate) -ac \(options.inputAudioChannel) -itsoffset \(options.inputAudioItsOffset) -i \(audioPipe!)"
-    }
-    
+ 
     private func generateVideoOutputCommand() -> String {
-        return "-framerate \(options.outputVideoFramerate) -pixel_format \(options.outputVideoPixelFormat) -c:v \(options.outputVideoCodec) -vf \"transpose=1,scale=\(options.outputVideoSize.0):\(options.outputVideoSize.1)\" -b:v \(options.outputVideoBitrate)"
+        return "-framerate \(options.outputVideoFramerate) -pixel_format \(options.outputVideoPixelFormat) -vf \"\(options.outputVideoTranspose == nil ? "" : "transpose=\(options.outputVideoTranspose!),")scale=\(options.outputVideoSize.0):\(options.outputVideoSize.1)\" -b:v \(options.outputVideoBitrate)"
     }
     
     private func generateAudioOutputCommand() -> String {
-        return "-c:a \(options.outputAudioCodec) -b:a \(options.outputAudioBitrate)"
+        return "-b:a \(options.outputAudioBitrate)"
     }
-    
-    private func executeVideoOnly() {
-        let cmd = "-re \(generateVideoInputCommand()) \(generateVideoOutputCommand()) -f \(outputFormat) \"\(url)\""
+
+    private func executeCommand() {
+        let inputs = self.inputCommands.joined(separator: " ").replacingOccurrences(of: "%videoPipe%", with: videoPipe!).replacingOccurrences(of: "%audioPipe%", with: audioPipe!)
+        let encoders = self.encoders.joined(separator: " ")
+        let cmd = "-re \(inputs) \(encoders) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }
     
-    private func executeAudioOnly() {
-        let cmd = "-re \(generateAudioInputCommand()) -vn \(generateAudioOutputCommand()) -f \(outputFormat) \"\(url)\""
-        execute(cmd: cmd)
-    }
-    
-    private func generateFileInputCommand() -> String {
-        return "-f \(options.inputVideoFileType) -i \(options.inputFilePath)"
-    }
-    
-    private func generateFileOutputCommand() -> String {
-        return "-c:v \(options.outputVideoCodec) -c:a \(options.outputAudioCodec)"
-    }
-    
-    private func executeVideo_Audio() {
-        let cmd = "-re \(generateVideoInputCommand()) \(generateAudioInputCommand()) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \"\(url)\""
-        
-        execute(cmd: cmd)
-    }
-    
-    private func executeFile() {
-        let cmd = "-re \(generateFileInputCommand()) \(generateFileOutputCommand()) -f \(outputFormat) \"\(url)\""
-        execute(cmd: cmd)
-    }
     
     private func execute(cmd: String) {
         print("Executing \(cmd)..........")
@@ -397,7 +435,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
             if let session = session {
                 if let stats = session.getStatistics().first as? Statistics {
                     DispatchQueue.main.async {
-                        self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, isVideoRecording: false, isAudioRecording: false))
+                        self.delegate?._FFLiveKit(onStats: FFStat(stat: stats))
                     }
                 }
                 if let code = session.getReturnCode() {
@@ -421,55 +459,64 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
                 return
             }
             /// For Video
-            if stats.getVideoFps() > 0 || stats.getTime() > 0 {
-                self.isVideoRecording = true
-                self.isAudioRecording = true
-            }
-            if self.recordingState == .RequestRecording {
-                if self.recordingType == .Camera_Microphone {
-                    if self.isVideoRecording && self.isAudioRecording {
-                        self.recordingState = .Recording
-                    }
-                } else if self.recordingType == .Microphone {
-                    if self.isAudioRecording {
-                        self.recordingState = .Recording
-                    }
-                } else if self.recordingType == .Camera {
-                    if self.isVideoRecording {
-                        self.recordingState = .Recording
-                    }
-                } else if self.recordingType == .File {
-                    self.recordingState = .Recording
-                }
+            if stats.getTime() > 0 {
+                self.recordingState = .Recording
             }
             DispatchQueue.main.async {
-                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, isVideoRecording: self.isVideoRecording, isAudioRecording: self.isAudioRecording))
+                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats))
             }
         })
     }
     
-    func _CameraSource(onData: Data) {
-        if !self.isInBackground, self.running, let data = isInBackground ? blankFrames : onData {
-            if !self.isVideoRecording {
-                self.writeToVideoPipe(data: data)
-            } else {
-                self.appendToVideoBuffer(data: data)
+    
+//    func _CameraSource(switchStarted: Bool) {
+//        startPiping = false
+//        clearVideoBuffer()
+//    }
+//    
+//    func _CameraSource(switchEnded: Bool) {
+//        running = true
+//    }
+    
+    
+    func _Source(_ source: Source, onData: Data) {
+        if self.enableWritingToPipe {
+            if source is CameraSource {
+                if !self.isInBackground, let data = isInBackground ? blankFrames : onData {
+                    if self.recordingState == .RequestRecording {
+                        self.writeToVideoPipe(data: data)
+                    } else if self.recordingState == .Recording {
+                        self.appendToVideoBuffer(data: data)
+                    }
+                }
+            } else if source is MicrophoneSource {
+                if self.recordingState == .RequestRecording {
+                    self.writeToAudioPipe(data: onData)
+                } else if self.recordingState == .Recording {
+                    if isInBackground {
+                        self.writeToAudioPipe(data: onData)
+                    } else {
+                        self.appendToAudioBuffer(data: onData)
+                    }
+                }
             }
         }
     }
     
-    func _CameraSource(switchStarted: Bool) {
-        running = false
-        clearVideoBuffer()
-    }
-    
-    func _CameraSource(switchEnded: Bool) {
-        running = true
-    }
-    
-    func _MicrophoneSource(onData: Data) {
-        if self.running {
-            self.writeToAudioPipe(data: onData)
+    func _Source(_ source: Source, extra: [String : Any]) {
+        if self.recordingState == .Recording {
+            if source is CameraSource {
+                if let switchStarted = extra["switchStarted"] as? Bool {
+                    if switchStarted == true {
+                        self.enableWritingToPipe = false
+                        clearVideoBuffer()
+                        clearAudioBuffer()
+                    } else if switchStarted == false {
+                        self.enableWritingToPipe = true
+                    }
+                }
+                
+            }
         }
     }
 }

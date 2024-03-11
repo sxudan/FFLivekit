@@ -18,16 +18,16 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     @IBOutlet weak var videoRecLabel: UILabel!
     
     let cameraSource = CameraSource(position: .front, preset: .hd1280x720)
-    let microphoneSource = MicrophoneSource()
-    let fileSource = FileSource(filetype: "rtsp", url: "rtsp://192.168.1.100:8554/mystream1")
-    let ffLiveKit = FFLiveKit()
+    let microphoneSource = try! MicrophoneSource()
+    let fileSource = FileSource(filetype: "mp4", url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+    let ffLiveKit = FFLiveKit(options: [.outputVideoSize((360, 640)), .outputVideoBitrate("400k")])
     var isRecording = false
     
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource, file: nil)
+        ffLiveKit.addSources(sources: [microphoneSource])
         cameraSource.startPreview(previewView: self.view)
         /// initialize the connections
         let srtConnection = try! SRTConnection(baseUrl: "srt://192.168.1.100:8890?streamid=publish:mystream&pkt_size=1316")
@@ -56,8 +56,6 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     
     func _FFLiveKit(onStats stats: FFStat) {
         self.fpsLabel.text = "FPS: \(stats.fps)"
-        self.videoRecLabel.text = "Video Recording: \(stats.isVideoRecording)"
-        self.audioRecLabel.text = "Audio Recording: \(stats.isAudioRecording)"
     }
     
     func _FFLiveKit(onError error: String) {
