@@ -80,7 +80,7 @@
 			path = Controllers;
 			sourceTree = "<group>";
 		};
-		D30E1B132B9D608A00D78458 /* Source */ = {
+		D30E1B132B9D608A00D78458 /* FFLiveKit */ = {
 			isa = PBXGroup;
 			children = (
 				D30E1B222B9D6B4A00D78458 /* Utils */,
@@ -88,7 +88,7 @@
 				D30E1B182B9D61A900D78458 /* Net */,
 				D30E1B252B9D6E3B00D78458 /* FFLiveKit.swift */,
 			);
-			path = Source;
+			path = FFLiveKit;
 			sourceTree = "<group>";
 		};
 		D30E1B182B9D61A900D78458 /* Net */ = {
@@ -150,7 +150,7 @@
 				D3A257372B8BFD2900B69B54 /* LaunchScreen.storyboard */,
 				D3A2573A2B8BFD2900B69B54 /* Info.plist */,
 				D30E1B0B2B9AA2C100D78458 /* Controllers */,
-				D30E1B132B9D608A00D78458 /* Source */,
+				D30E1B132B9D608A00D78458 /* FFLiveKit */,
 			);
 			path = "live-demo";
 			sourceTree = "<group>";

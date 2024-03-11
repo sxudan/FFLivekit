@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum ConnectionError: Error {
+    case SchemeError
+}
+
 class Connection {
     
     let fileType: String!

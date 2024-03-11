@@ -8,7 +8,10 @@
 import Foundation
 
 class RTSPConnection: Connection {
-    init(baseUrl: String) {
+    init(baseUrl: String) throws {
+        guard let url = URL(string: baseUrl), url.scheme == "rtsp" else {
+            throw ConnectionError.SchemeError
+        }
         super.init(fileType: "rtsp", baseUrl: baseUrl)
     }
 }
