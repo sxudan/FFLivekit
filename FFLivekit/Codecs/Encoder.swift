@@ -12,6 +12,5 @@ public class Encoder: FFmpegBlock  {
     init(str: String) {
         super.init()
         command = str
-        
     }
 }
