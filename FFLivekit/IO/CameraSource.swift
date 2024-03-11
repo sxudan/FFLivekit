@@ -8,13 +8,13 @@
 import AVFoundation
 import UIKit
 
-protocol CameraSourceDelegate {
+public protocol CameraSourceDelegate {
     func _CameraSource(onData: Data)
     func _CameraSource(switchStarted: Bool)
     func _CameraSource(switchEnded: Bool)
 }
 
-class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
+public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     let videoOutput = AVCaptureVideoDataOutput();
     private let previewLayer = AVCaptureVideoPreviewLayer()
@@ -25,7 +25,7 @@ class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
     public var delegate: CameraSourceDelegate?
     var currentCameraPosition: AVCaptureDevice.Position?
     
-    init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080) {
+    public init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080) {
         super.init(fileType: "rawvideo")
         session = setupCaptureSession(position: position, preset: preset)
         ///set delegate
@@ -36,7 +36,7 @@ class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    func switchCamera() {
+    public func switchCamera() {
         self.delegate?._CameraSource(switchStarted: true)
         session?.beginConfiguration()
         // Remove existing input
@@ -128,11 +128,11 @@ class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    func getDimensions() -> (Int, Int) {
+    public func getDimensions() -> (Int, Int) {
         return (Int(self.dimensions.0), Int(self.dimensions.1))
     }
     
-    func startPreview(previewView: UIView?) {
+    public func startPreview(previewView: UIView?) {
         /// Set the preview layer to display the camera feed
         if let view = previewView {
             DispatchQueue.main.async {
@@ -146,15 +146,15 @@ class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    func start() {
+    public func start() {
         self.running = true
     }
     
-    func stop() {
+    public func stop() {
         self.running = false
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
             if running, let data = BufferConverter.extractBGRAData(from: sampleBuffer) {
                 self.delegate?._CameraSource(onData: data)

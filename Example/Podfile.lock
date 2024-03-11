@@ -1,0 +1,20 @@
+PODS:
+  - FFLivekit (0.0.1):
+    - ffmpeg-kit-ios-full
+  - ffmpeg-kit-ios-full (6.0)
+
+DEPENDENCIES:
+  - FFLivekit
+
+SPEC REPOS:
+  trunk:
+    - FFLivekit
+    - ffmpeg-kit-ios-full
+
+SPEC CHECKSUMS:
+  FFLivekit: a09e565ad7e7a5496a949a9a66cd396572af7655
+  ffmpeg-kit-ios-full: 0099a769d22114dde52cdc238397941c32f75d27
+
+PODFILE CHECKSUM: da937d7a8211fda0ab707445b02dc1da2026984a
+
+COCOAPODS: 1.14.3

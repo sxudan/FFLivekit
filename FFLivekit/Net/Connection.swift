@@ -7,12 +7,16 @@
 
 import Foundation
 
-class Connection {
+enum ConnectionError: Error {
+    case SchemeError
+}
+
+public class Connection {
     
     let fileType: String!
     let baseUrl: String!
     
-    init(fileType: String, baseUrl: String) {
+    public init(fileType: String, baseUrl: String) {
         self.fileType = fileType
         self.baseUrl = baseUrl
     }

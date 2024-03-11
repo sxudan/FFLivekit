@@ -7,11 +7,11 @@
 
 import Foundation
 
-class Source: NSObject {
+public class Source: NSObject {
     
     let type: String!
     
-    init(fileType: String) {
+    public init(fileType: String) {
         type = fileType
     }
 }

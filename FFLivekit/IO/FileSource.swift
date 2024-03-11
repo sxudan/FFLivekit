@@ -7,10 +7,10 @@
 
 import Foundation
 
-class FileSource: Source {
+public class FileSource: Source {
     let path: String
     
-    init(filetype: String, url: String) {
+    public init(filetype: String, url: String) {
         self.path = url
         super.init(fileType: filetype)
     }

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import FFLivekit
 
 class TestViewController: UIViewController, FFLiveKitDelegate {
    

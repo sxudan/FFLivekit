@@ -6,6 +6,5 @@ target 'live-demo' do
   use_frameworks!
 
   # Pods for live-demo
- pod 'ffmpeg-kit-ios-full', '~> 6.0'
- pod 'MobileVLCKit', '3.6.0b10'
+pod 'FFLivekit'
 end

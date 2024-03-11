@@ -8,17 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7830AB979939E8876AC5B5CF /* Pods_live_demo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B46632C18825C406E474741D /* Pods_live_demo.framework */; };
-		D30E1B122B9D607E00D78458 /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B112B9D607E00D78458 /* Connection.swift */; };
-		D30E1B152B9D60A400D78458 /* RTMPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B142B9D60A400D78458 /* RTMPConnection.swift */; };
-		D30E1B172B9D60B200D78458 /* RTSPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B162B9D60B200D78458 /* RTSPConnection.swift */; };
-		D30E1B1D2B9D639800D78458 /* CameraSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B1C2B9D639800D78458 /* CameraSource.swift */; };
 		D30E1B1F2B9D666F00D78458 /* TestViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B1E2B9D666F00D78458 /* TestViewController.swift */; };
-		D30E1B212B9D6A3700D78458 /* MicrophoneSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B202B9D6A3700D78458 /* MicrophoneSource.swift */; };
-		D30E1B242B9D6B5F00D78458 /* BufferConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B232B9D6B5F00D78458 /* BufferConverter.swift */; };
-		D30E1B262B9D6E3B00D78458 /* FFLiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B252B9D6E3B00D78458 /* FFLiveKit.swift */; };
-		D30E1B282B9D914C00D78458 /* FFmpegUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B272B9D914C00D78458 /* FFmpegUtils.swift */; };
-		D30E1B2A2B9DEBFA00D78458 /* Source.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B292B9DEBFA00D78458 /* Source.swift */; };
-		D30E1B2C2B9DEFC100D78458 /* FileSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30E1B2B2B9DEFC100D78458 /* FileSource.swift */; };
 		D3A2572D2B8BFD2800B69B54 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A2572C2B8BFD2800B69B54 /* AppDelegate.swift */; };
 		D3A2572F2B8BFD2800B69B54 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A2572E2B8BFD2800B69B54 /* SceneDelegate.swift */; };
 		D3A257312B8BFD2800B69B54 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A257302B8BFD2800B69B54 /* ViewController.swift */; };
@@ -30,17 +20,7 @@
 /* Begin PBXFileReference section */
 		17AE0299CEBC43D9EFBBEE6D /* Pods-live-demo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-live-demo.release.xcconfig"; path = "Target Support Files/Pods-live-demo/Pods-live-demo.release.xcconfig"; sourceTree = "<group>"; };
 		B46632C18825C406E474741D /* Pods_live_demo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_live_demo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		D30E1B112B9D607E00D78458 /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
-		D30E1B142B9D60A400D78458 /* RTMPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTMPConnection.swift; sourceTree = "<group>"; };
-		D30E1B162B9D60B200D78458 /* RTSPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTSPConnection.swift; sourceTree = "<group>"; };
-		D30E1B1C2B9D639800D78458 /* CameraSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraSource.swift; sourceTree = "<group>"; };
 		D30E1B1E2B9D666F00D78458 /* TestViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestViewController.swift; sourceTree = "<group>"; };
-		D30E1B202B9D6A3700D78458 /* MicrophoneSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneSource.swift; sourceTree = "<group>"; };
-		D30E1B232B9D6B5F00D78458 /* BufferConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferConverter.swift; sourceTree = "<group>"; };
-		D30E1B252B9D6E3B00D78458 /* FFLiveKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFLiveKit.swift; sourceTree = "<group>"; };
-		D30E1B272B9D914C00D78458 /* FFmpegUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegUtils.swift; sourceTree = "<group>"; };
-		D30E1B292B9DEBFA00D78458 /* Source.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Source.swift; sourceTree = "<group>"; };
-		D30E1B2B2B9DEFC100D78458 /* FileSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSource.swift; sourceTree = "<group>"; };
 		D3A257292B8BFD2800B69B54 /* live-demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "live-demo.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3A2572C2B8BFD2800B69B54 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D3A2572E2B8BFD2800B69B54 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -80,47 +60,6 @@
 			path = Controllers;
 			sourceTree = "<group>";
 		};
-		D30E1B132B9D608A00D78458 /* Source */ = {
-			isa = PBXGroup;
-			children = (
-				D30E1B222B9D6B4A00D78458 /* Utils */,
-				D30E1B192B9D61B300D78458 /* IO */,
-				D30E1B182B9D61A900D78458 /* Net */,
-				D30E1B252B9D6E3B00D78458 /* FFLiveKit.swift */,
-			);
-			path = Source;
-			sourceTree = "<group>";
-		};
-		D30E1B182B9D61A900D78458 /* Net */ = {
-			isa = PBXGroup;
-			children = (
-				D30E1B112B9D607E00D78458 /* Connection.swift */,
-				D30E1B142B9D60A400D78458 /* RTMPConnection.swift */,
-				D30E1B162B9D60B200D78458 /* RTSPConnection.swift */,
-			);
-			path = Net;
-			sourceTree = "<group>";
-		};
-		D30E1B192B9D61B300D78458 /* IO */ = {
-			isa = PBXGroup;
-			children = (
-				D30E1B1C2B9D639800D78458 /* CameraSource.swift */,
-				D30E1B292B9DEBFA00D78458 /* Source.swift */,
-				D30E1B202B9D6A3700D78458 /* MicrophoneSource.swift */,
-				D30E1B2B2B9DEFC100D78458 /* FileSource.swift */,
-			);
-			path = IO;
-			sourceTree = "<group>";
-		};
-		D30E1B222B9D6B4A00D78458 /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				D30E1B232B9D6B5F00D78458 /* BufferConverter.swift */,
-				D30E1B272B9D914C00D78458 /* FFmpegUtils.swift */,
-			);
-			path = Utils;
-			sourceTree = "<group>";
-		};
 		D3A257202B8BFD2700B69B54 = {
 			isa = PBXGroup;
 			children = (
@@ -150,7 +89,6 @@
 				D3A257372B8BFD2900B69B54 /* LaunchScreen.storyboard */,
 				D3A2573A2B8BFD2900B69B54 /* Info.plist */,
 				D30E1B0B2B9AA2C100D78458 /* Controllers */,
-				D30E1B132B9D608A00D78458 /* Source */,
 			);
 			path = "live-demo";
 			sourceTree = "<group>";
@@ -279,20 +217,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D30E1B212B9D6A3700D78458 /* MicrophoneSource.swift in Sources */,
 				D3A257312B8BFD2800B69B54 /* ViewController.swift in Sources */,
-				D30E1B2C2B9DEFC100D78458 /* FileSource.swift in Sources */,
-				D30E1B282B9D914C00D78458 /* FFmpegUtils.swift in Sources */,
 				D3A2572D2B8BFD2800B69B54 /* AppDelegate.swift in Sources */,
-				D30E1B262B9D6E3B00D78458 /* FFLiveKit.swift in Sources */,
 				D3A2572F2B8BFD2800B69B54 /* SceneDelegate.swift in Sources */,
-				D30E1B122B9D607E00D78458 /* Connection.swift in Sources */,
 				D30E1B1F2B9D666F00D78458 /* TestViewController.swift in Sources */,
-				D30E1B172B9D60B200D78458 /* RTSPConnection.swift in Sources */,
-				D30E1B152B9D60A400D78458 /* RTMPConnection.swift in Sources */,
-				D30E1B242B9D6B5F00D78458 /* BufferConverter.swift in Sources */,
-				D30E1B1D2B9D639800D78458 /* CameraSource.swift in Sources */,
-				D30E1B2A2B9DEBFA00D78458 /* Source.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
