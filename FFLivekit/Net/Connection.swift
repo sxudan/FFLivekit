@@ -11,6 +11,12 @@ enum ConnectionError: Error {
     case SchemeError
 }
 
+public enum FileType: String {
+    case RTSP = "rtsp"
+    case RTMP = "flv"
+    case MPEGTS = "mpegts"
+}
+
 public class Connection {
     
     let fileType: String!

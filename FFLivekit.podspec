@@ -10,5 +10,5 @@ Pod::Spec.new do |s|
   s.swift_version    = '5.0'
   s.platforms        = { :ios => '13.0' }
   s.source_files     = 'FFLivekit/**/*.{h,swift}'
-  s.dependency 'ffmpeg-kit-ios-full'
+  s.dependency 'ffmpeg-kit-srt'
 end

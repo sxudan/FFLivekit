@@ -43,6 +43,7 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
         if let currentInput = session?.inputs.first as? AVCaptureInput {
             session?.removeInput(currentInput)
         }
+        
         // Toggle camera position
         let position: AVCaptureDevice.Position = currentCameraPosition == .back ? .front : .back
         self.currentCameraPosition = position
@@ -159,6 +160,33 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
             if running, let data = BufferConverter.extractBGRAData(from: sampleBuffer) {
                 self.delegate?._CameraSource(onData: data)
             }
+        }
+    }
+    
+    /// check if torch is on or off
+    public var isTorchOn: Bool {
+        if let device = AVCaptureDevice.default(for: .video) {
+            return device.hasTorch && device.isTorchActive
+        }
+        return false
+    }
+    
+    /// Toggle torch
+    public func toggleTorch(level: Float = 1.0) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        
+        do {
+            try device.lockForConfiguration()
+            
+            if device.isTorchActive {
+                device.torchMode = .off
+            } else {
+                try device.setTorchModeOn(level: level)
+            }
+            
+            device.unlockForConfiguration()
+        } catch {
+            print("Error toggling torch: \(error.localizedDescription)")
         }
     }
 }

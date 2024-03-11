@@ -6,5 +6,5 @@ target 'live-demo' do
   use_frameworks!
 
   # Pods for live-demo
-pod 'FFLivekit'
+pod 'FFLivekit', :path=> '../'
 end

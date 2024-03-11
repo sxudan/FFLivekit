@@ -13,6 +13,6 @@ public class RTMPConnection: Connection {
         guard let url = URL(string: baseUrl), url.scheme == "rtmp" || url.scheme == "rtmps" else {
             throw ConnectionError.SchemeError
         }
-        super.init(fileType: "flv", baseUrl: baseUrl)
+        super.init(fileType: FileType.RTMP.rawValue, baseUrl: baseUrl)
     }
 }

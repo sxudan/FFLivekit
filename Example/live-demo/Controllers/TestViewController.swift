@@ -9,6 +9,7 @@ import UIKit
 import FFLivekit
 
 class TestViewController: UIViewController, FFLiveKitDelegate {
+    
    
     @IBOutlet weak var actionBtn: UIControl!
     
@@ -22,16 +23,23 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     let ffLiveKit = FFLiveKit()
     var isRecording = false
     
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        try? ffLiveKit.connect(connection: RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935"))
         ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource, file: nil)
         cameraSource.startPreview(previewView: self.view)
+        /// initialize the connections
+        let srtConnection = try! SRTConnection(baseUrl: "srt://192.168.1.100:8890?streamid=publish:mystream&pkt_size=1316")
+        let rtmpConnection = try! RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935/mystream")
+        let rtspConnection = try! RTSPConnection(baseUrl: "rtsp://192.168.1.100:8554/mystream")
+        let udpConnection = try! UDPConnection(baseUrl: "udp://192.168.1.100:1234?pkt_size=1316")
+        try! ffLiveKit.connect(connection: rtmpConnection)
         ffLiveKit.prepare(delegate: self)
         initStartActionBtn()
     }
     
-    func FFmpegUtils(didChange status: RecordingState) {
+    func _FFLiveKit(didChange status: RecordingState) {
         print(status)
         if status == .RequestRecording {
             initLoadingActionBtn()
@@ -46,18 +54,26 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
         }
     }
     
-    func FFmpegUtils(onStats stats: FFStat) {
+    func _FFLiveKit(onStats stats: FFStat) {
         self.fpsLabel.text = "FPS: \(stats.fps)"
         self.videoRecLabel.text = "Video Recording: \(stats.isVideoRecording)"
         self.audioRecLabel.text = "Audio Recording: \(stats.isAudioRecording)"
     }
     
+    func _FFLiveKit(onError error: String) {
+        print("Error \(error)")
+    }
+    
     @IBAction func onTap(_ sender: Any) {
         if !isRecording {
-            try? ffLiveKit.publish(name: "mystream")
+            try? ffLiveKit.publish()
         } else {
             ffLiveKit.stop()
         }
+    }
+    
+    @IBAction func toggleTorch(_ sender: Any) {
+        cameraSource.toggleTorch()
     }
     
     @IBAction func onCameraSwitch(_ sender: Any) {

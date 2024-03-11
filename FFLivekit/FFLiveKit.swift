@@ -51,7 +51,7 @@ public class FFLiveKit {
             inputAudioChannel: 1,
             inputAudioItsOffset: -5,
             outputVideoFramerate: 30,
-            outputVideoCodec: "h264",
+            outputVideoCodec: "h264_videotoolbox",
             outputVideoPixelFormat: "bgra",
             outputVideoSize: (360, 640),
             outputVideoBitrate: "640k",
@@ -69,11 +69,15 @@ public class FFLiveKit {
         
     }
     
-    public func publish(name: String?) throws {
+    /// Publish the stream to the server. For example: <url>/mystream?pkt_size=1024:name=hello
+    /// - Parameters:
+    ///   - name: "mystream". name of the stream. No need to add /
+    ///   - queryString: pkt_size=1024:name=hello. No need to add ?
+    public func publish() throws {
         guard let connection = self.connection else {
             throw FFLiveKitError.NotInitialized
         }
-        self.url = connection.baseUrl + "/" + (name ?? "")
+        self.url = connection.baseUrl
         /// start
         cameraSource?.start()
         do {
@@ -81,7 +85,7 @@ public class FFLiveKit {
         } catch {
             throw FFLiveKitError.IOError(message: error.localizedDescription)
         }
-        ffmpegUtil?.start(videoRec: self.cameraSource != nil, audioRec: self.microphoneSource != nil, fileRec: self.fileSource != nil, streamName: name)
+        ffmpegUtil?.start(videoRec: self.cameraSource != nil, audioRec: self.microphoneSource != nil, fileRec: self.fileSource != nil)
     }
     
     public func stop() {
