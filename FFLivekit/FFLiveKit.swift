@@ -13,11 +13,11 @@ enum FFLiveKitError: Error {
     case IOError(message: String)
 }
 
-protocol FFLiveKitDelegate: FFmpegUtilsDelegate {
+public protocol FFLiveKitDelegate: FFmpegUtilsDelegate {
     
 }
 
-class FFLiveKit {
+public class FFLiveKit {
 
     private var connection: Connection?
     private var cameraSource: CameraSource?
@@ -27,8 +27,12 @@ class FFLiveKit {
     var ffmpegUtil: FFmpegUtils?
     private var delegate: FFLiveKitDelegate?
     
+    public init() {
+        
+    }
     
-    func connect(connection: Connection) throws {
+    
+    public func connect(connection: Connection) throws {
         /// compute url
         if connection.baseUrl.isEmpty {
             throw FFLiveKitError.EmptyUrl
@@ -36,7 +40,7 @@ class FFLiveKit {
         self.connection = connection
     }
     
-    func prepare(delegate: FFLiveKitDelegate?) {
+    public func prepare(delegate: FFLiveKitDelegate?) {
         self.delegate = delegate
         ffmpegUtil = FFmpegUtils(outputFormat: connection!.fileType, url: connection!.baseUrl, options: FFmpegOptions(
             inputVideoFileType: fileSource != nil ? (fileSource?.type ?? "") : (cameraSource?.type ?? ""),
@@ -58,14 +62,14 @@ class FFLiveKit {
         microphoneSource?.delegate = ffmpegUtil
     }
     
-    func addSource(camera: CameraSource?, microphone: MicrophoneSource?, file: FileSource?) {
+    public func addSource(camera: CameraSource?, microphone: MicrophoneSource?, file: FileSource?) {
         self.cameraSource = camera
         self.microphoneSource = microphone
         self.fileSource = file
         
     }
     
-    func publish(name: String?) throws {
+    public func publish(name: String?) throws {
         guard let connection = self.connection else {
             throw FFLiveKitError.NotInitialized
         }
@@ -80,7 +84,7 @@ class FFLiveKit {
         ffmpegUtil?.start(videoRec: self.cameraSource != nil, audioRec: self.microphoneSource != nil, fileRec: self.fileSource != nil, streamName: name)
     }
     
-    func stop() {
+    public func stop() {
         cameraSource?.stop()
         microphoneSource?.stop()
         ffmpegUtil?.stop()

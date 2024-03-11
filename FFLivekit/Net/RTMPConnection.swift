@@ -7,9 +7,9 @@
 
 import Foundation
 
-class RTMPConnection: Connection {
+public class RTMPConnection: Connection {
     
-    init(baseUrl: String) throws {
+    public init(baseUrl: String) throws {
         guard let url = URL(string: baseUrl), url.scheme == "rtmp" || url.scheme == "rtmps" else {
             throw ConnectionError.SchemeError
         }

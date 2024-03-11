@@ -7,17 +7,17 @@
 
 import AVFoundation
 
-protocol MicrophoneSourceDelegate {
+public protocol MicrophoneSourceDelegate {
     func _MicrophoneSource(onData: Data)
 }
 
-class MicrophoneSource: Source {
+public class MicrophoneSource: Source {
     
     private var audioEngine: AVAudioEngine?
     let backgroundAudioQueue = DispatchQueue.global(qos: .background)
     var delegate: MicrophoneSourceDelegate?
     
-    init() {
+    public init() {
         super.init(fileType: "s16le")
         setupSession()
         setupAudioEngine()

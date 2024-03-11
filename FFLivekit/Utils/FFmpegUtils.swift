@@ -15,19 +15,19 @@ enum RecordingType {
     case File
 }
 
-class FFStat {
+public class FFStat {
     
-    let bitrate: Double
-    let size: Int
-    let time: Double
-    let speed: Double
-    let rate: Double
-    let fps: Float
-    let quality: Float
-    let frameNumber: Int32
-    let sessionId: Int
-    let isVideoRecording: Bool
-    let isAudioRecording: Bool
+    public let bitrate: Double
+    public let size: Int
+    public let time: Double
+    public let speed: Double
+    public let rate: Double
+    public let fps: Float
+    public let quality: Float
+    public let frameNumber: Int32
+    public let sessionId: Int
+    public let isVideoRecording: Bool
+    public let isAudioRecording: Bool
     
     init(stat: Statistics, isVideoRecording: Bool, isAudioRecording: Bool) {
         bitrate = stat.getBitrate()
@@ -46,14 +46,14 @@ class FFStat {
     
 }
 
-enum RecordingState {
+public enum RecordingState {
     case RequestRecording
     case Recording
     case RequestStop
     case Normal
 }
 
-protocol FFmpegUtilsDelegate {
+public protocol FFmpegUtilsDelegate {
     func FFmpegUtils(didChange status: RecordingState)
     func FFmpegUtils(onStats stats: FFStat)
 }

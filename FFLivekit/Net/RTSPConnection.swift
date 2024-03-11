@@ -7,8 +7,8 @@
 
 import Foundation
 
-class RTSPConnection: Connection {
-    init(baseUrl: String) throws {
+public class RTSPConnection: Connection {
+    public init(baseUrl: String) throws {
         guard let url = URL(string: baseUrl), url.scheme == "rtsp" else {
             throw ConnectionError.SchemeError
         }
