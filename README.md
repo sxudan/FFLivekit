@@ -6,27 +6,64 @@ This is also to to check how well it does against the existing live streaming pa
 
 # Features:
 
-- Live stream video and audio from the device's camera to RTMP or RTSP servers.
-- Customize FFmpeg commands to meet specific streaming requirements.
-- Seamless integration with AVCaptureSession for camera and microphone access.
-- Asynchronous execution for smooth streaming without blocking the main thread.
+Inputs
 
+- [x] Camera
+- [x] Microphone
+- [x] File
+
+RTMP 
+
+- [x] Ingest to RTMP server
+
+RTSP
+
+- [x] Ingest to RTSP server
+
+SRT
+
+- [x] Ingest to SRT server
+
+UDP Support
+
+- [x] Ingest using UDP protocol
+
+Others minor features
+- [x] Toggle Torch
+- [x] Switch Camera
+- [x] Background Publishing
 
 
 # Usage
 
+### Initialize the Source and FFLiveKit
 ```Swift
 let cameraSource = CameraSource(position: .front)
 let microphoneSource = MicrophoneSource()
 let ffLiveKit = FFLiveKit()
 ```
 
+### Initialize the connections according to your need
+```Switf
+let srtConnection = try! SRTConnection(baseUrl: "srt://192.168.1.100:8890?streamid=publish:mystream&pkt_size=1316")
+let rtmpConnection = try! RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935/mystream")
+let rtspConnection = try! RTSPConnection(baseUrl: "rtsp://192.168.1.100:8554/mystream")
+let udpConnection = try! UDPConnection(baseUrl: "udp://192.168.1.100:1234?pkt_size=1316")
+```
+
+### Connect
 ```Swift
-try? ffLiveKit.connect(connection: RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935"))
+try! ffLiveKit.connect(connection: rtmpConnection)
+```
+
+### Add source
+```Swift
 ffLiveKit.addSource(camera: cameraSource, microphone: microphoneSource)
 cameraSource.startPreview(previewView: self.view)
 ffLiveKit.prepare(delegate: self)
 ```
+
+### Start or Stop
 
 ```Swift
 if !isRecording {
@@ -34,6 +71,14 @@ if !isRecording {
 } else {
     ffLiveKit.stop()
 }
+```
+
+### Delegates
+
+```Swift
+func _FFLiveKit(didChange status: RecordingState)
+func _FFLiveKit(onStats stats: FFStat)
+func _FFLiveKit(onError error: String)
 ```
 
 # Demo
