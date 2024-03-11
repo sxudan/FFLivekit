@@ -45,4 +45,24 @@ class BufferConverter {
         var pixelData = Data(count: totalBytes * 2)
         return pixelData
     }
+    
+    class func convert(from inputFormat: AVAudioFormat, to outputFormat: AVAudioFormat, buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer {
+        let converter = AVAudioConverter(from: inputFormat, to: outputFormat)!
+        var newBufferAvailable = true
+        let inputCallback: AVAudioConverterInputBlock = { inNumPackets, outStatus in
+            if newBufferAvailable {
+                outStatus.pointee = .haveData
+                newBufferAvailable = false
+                return buffer
+            } else {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+        }
+        let convertedBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(outputFormat.sampleRate) * buffer.frameLength / AVAudioFrameCount(buffer.format.sampleRate))!
+        var error: NSError?
+        let status = converter.convert(to: convertedBuffer, error: &error, withInputFrom: inputCallback)
+        assert(status != .error)
+        return convertedBuffer
+    }
 }

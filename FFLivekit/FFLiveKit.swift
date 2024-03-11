@@ -20,15 +20,16 @@ public protocol FFLiveKitDelegate: FFmpegUtilsDelegate {
 public class FFLiveKit {
 
     private var connection: Connection?
-    private var cameraSource: CameraSource?
-    private var microphoneSource: MicrophoneSource?
-    private var fileSource: FileSource?
     private var url = ""
     var ffmpegUtil: FFmpegUtils?
     private var delegate: FFLiveKitDelegate?
     
-    public init() {
-        
+    private var sources: [Source] = []
+    
+    private var options: [FFLivekitSettings] = []
+    
+    public init(options: [FFLivekitSettings] = []) {
+        self.options = options
     }
     
     
@@ -42,32 +43,25 @@ public class FFLiveKit {
     
     public func prepare(delegate: FFLiveKitDelegate?) {
         self.delegate = delegate
-        ffmpegUtil = FFmpegUtils(outputFormat: connection!.fileType, url: connection!.baseUrl, options: FFmpegOptions(
-            inputVideoFileType: fileSource != nil ? (fileSource?.type ?? "") : (cameraSource?.type ?? ""),
-            inputVideoPixelFormat: "bgra",
-            inputVideoSize: cameraSource != nil ? (cameraSource!.getDimensions().0, cameraSource!.getDimensions().1) : (0, 0),
-            inputAudioFileType: microphoneSource?.type ?? "",
-            inputAudioRate: 48000,
-            inputAudioChannel: 1,
-            inputAudioItsOffset: -5,
-            outputVideoFramerate: 30,
-            outputVideoCodec: "h264_videotoolbox",
-            outputVideoPixelFormat: "bgra",
-            outputVideoSize: (360, 640),
-            outputVideoBitrate: "640k",
-            outputAudioBitrate: "64k",
-            outputAudioCodec: "aac", inputFilePath: fileSource?.path ?? ""), delegate: delegate)
+        ffmpegUtil = FFmpegUtils(outputFormat: connection!.fileType, url: connection!.baseUrl, delegate: delegate, options: options)
         /// delegate
-        cameraSource?.delegate = ffmpegUtil
-        microphoneSource?.delegate = ffmpegUtil
+        for var source in sources {
+            source.delegate = ffmpegUtil
+        }
+//        cameraSource?.delegate = ffmpegUtil
+//        microphoneSource?.delegate = ffmpegUtil
     }
     
-    public func addSource(camera: CameraSource?, microphone: MicrophoneSource?, file: FileSource?) {
-        self.cameraSource = camera
-        self.microphoneSource = microphone
-        self.fileSource = file
-        
+    public func addSources(sources: [Source]) {
+        self.sources = sources
     }
+    
+//    public func addSource(camera: CameraSource?, microphone: MicrophoneSource?, file: FileSource?) {
+//        self.cameraSource = camera
+//        self.microphoneSource = microphone
+//        self.fileSource = file
+//        
+//    }
     
     /// Publish the stream to the server. For example: <url>/mystream?pkt_size=1024:name=hello
     /// - Parameters:
@@ -78,19 +72,21 @@ public class FFLiveKit {
             throw FFLiveKitError.NotInitialized
         }
         self.url = connection.baseUrl
-        /// start
-        cameraSource?.start()
-        do {
-            try microphoneSource?.start()
-        } catch {
-            throw FFLiveKitError.IOError(message: error.localizedDescription)
+        let inputs = sources.map({source in
+            return source.command
+        })
+        for source in sources {
+            source.start()
         }
-        ffmpegUtil?.start(videoRec: self.cameraSource != nil, audioRec: self.microphoneSource != nil, fileRec: self.fileSource != nil)
+        let encoders = sources.map { $0.encoder!.command }
+        print(encoders)
+        ffmpegUtil?.start(inputcommands: inputs, encoders: encoders)
     }
     
     public func stop() {
-        cameraSource?.stop()
-        microphoneSource?.stop()
+        for source in sources {
+            source.stop()
+        }
         ffmpegUtil?.stop()
     }
 }

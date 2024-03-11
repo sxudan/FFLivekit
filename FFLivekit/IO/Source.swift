@@ -7,11 +7,15 @@
 
 import Foundation
 
-public class Source: NSObject {
+public protocol SourceDelegate {
+    func _Source(_ source: Source, onData: Data)
+    func _Source(_ source: Source, extra: [String: Any])
+}
+
+public class Source: FFmpegBlock {
+    var delegate: SourceDelegate?
+    var encoder: Encoder?
     
-    let type: String!
-    
-    public init(fileType: String) {
-        type = fileType
-    }
+    public func start() {}
+    public func stop() {}
 }

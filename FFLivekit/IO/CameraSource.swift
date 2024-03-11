@@ -8,11 +8,11 @@
 import AVFoundation
 import UIKit
 
-public protocol CameraSourceDelegate {
-    func _CameraSource(onData: Data)
-    func _CameraSource(switchStarted: Bool)
-    func _CameraSource(switchEnded: Bool)
-}
+//public protocol CameraSourceDelegate {
+//    func _CameraSource(onData: Data)
+//    func _CameraSource(switchStarted: Bool)
+//    func _CameraSource(switchEnded: Bool)
+//}
 
 public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate {
     
@@ -22,12 +22,16 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
     private var dimensions: (Int32, Int32) = (0 , 0)
     let backgroundVideoQueue = DispatchQueue.global(qos: .background)
     private var running = false
-    public var delegate: CameraSourceDelegate?
+//    public var delegate: CameraSourceDelegate?
     var currentCameraPosition: AVCaptureDevice.Position?
     
-    public init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080) {
-        super.init(fileType: "rawvideo")
+    public init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080, encoder: Encoder = H264_VTEncoder()) {
+        super.init()
+        /// setup session
+        /// calculates the dimensions
         session = setupCaptureSession(position: position, preset: preset)
+        command = "-f rawvideo -pixel_format bgra -video_size \(dimensions.0)x\(dimensions.1) -framerate 30 -i %videoPipe%"
+        self.encoder = encoder
         ///set delegate
         videoOutput.setSampleBufferDelegate(self, queue: backgroundVideoQueue)
         DispatchQueue.global().async {
@@ -37,7 +41,8 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
     }
     
     public func switchCamera() {
-        self.delegate?._CameraSource(switchStarted: true)
+//        self.delegate?._CameraSource(switchStarted: true)
+        self.delegate?._Source(self, extra: ["switchStarted": true])
         session?.beginConfiguration()
         // Remove existing input
         if let currentInput = session?.inputs.first as? AVCaptureInput {
@@ -63,7 +68,8 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
             print("Error creating AVCaptureDeviceInput: \(error.localizedDescription)")
         }
         session?.commitConfiguration()
-        self.delegate?._CameraSource(switchEnded: true)
+        self.delegate?._Source(self, extra: ["switchStarted": false])
+//        self.delegate?._CameraSource(switchEnded: true)
     }
     
     private func addCamera(session: AVCaptureSession, position: AVCaptureDevice.Position) -> AVCaptureDeviceInput? {
@@ -147,18 +153,18 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
         }
     }
     
-    public func start() {
+    public override func start() {
         self.running = true
     }
     
-    public func stop() {
+    public override func stop() {
         self.running = false
     }
     
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
             if running, let data = BufferConverter.extractBGRAData(from: sampleBuffer) {
-                self.delegate?._CameraSource(onData: data)
+                self.delegate?._Source(self, onData: data)
             }
         }
     }
