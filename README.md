@@ -15,14 +15,20 @@ Inputs
 RTMP 
 
 - [x] Ingest to RTMP server
+- [ ] Playback (Todo)
 
 RTSP
 
 - [x] Ingest to RTSP server
+- [ ] Playbakc (Todo)
 
 SRT
 
 - [x] Ingest to SRT server
+
+HLS
+
+- [ ] Playback (Todo)
 
 UDP Support
 
