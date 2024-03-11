@@ -1,20 +1,23 @@
 PODS:
   - FFLivekit (0.0.1):
-    - ffmpeg-kit-ios-full
-  - ffmpeg-kit-ios-full (6.0)
+    - ffmpeg-kit-srt
+  - ffmpeg-kit-srt (2.0.0)
 
 DEPENDENCIES:
-  - FFLivekit
+  - FFLivekit (from `../`)
 
 SPEC REPOS:
   trunk:
-    - FFLivekit
-    - ffmpeg-kit-ios-full
+    - ffmpeg-kit-srt
+
+EXTERNAL SOURCES:
+  FFLivekit:
+    :path: "../"
 
 SPEC CHECKSUMS:
-  FFLivekit: a09e565ad7e7a5496a949a9a66cd396572af7655
-  ffmpeg-kit-ios-full: 0099a769d22114dde52cdc238397941c32f75d27
+  FFLivekit: 818511aedc9033e4f35636dccf42e1edd3c3ae77
+  ffmpeg-kit-srt: 21d77ca2a936c9cc41119832e3bce0eca80c425b
 
-PODFILE CHECKSUM: da937d7a8211fda0ab707445b02dc1da2026984a
+PODFILE CHECKSUM: 5b0da832d0454c538fea7c3deeb3d8b6cf1a8d12
 
 COCOAPODS: 1.14.3

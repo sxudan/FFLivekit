@@ -12,6 +12,6 @@ public class RTSPConnection: Connection {
         guard let url = URL(string: baseUrl), url.scheme == "rtsp" else {
             throw ConnectionError.SchemeError
         }
-        super.init(fileType: "rtsp", baseUrl: baseUrl)
+        super.init(fileType: FileType.RTSP.rawValue, baseUrl: baseUrl)
     }
 }

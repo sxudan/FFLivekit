@@ -54,8 +54,9 @@ public enum RecordingState {
 }
 
 public protocol FFmpegUtilsDelegate {
-    func FFmpegUtils(didChange status: RecordingState)
-    func FFmpegUtils(onStats stats: FFStat)
+    func _FFLiveKit(didChange status: RecordingState)
+    func _FFLiveKit(onStats stats: FFStat)
+    func _FFLiveKit(onError error: String)
 }
 
 
@@ -85,18 +86,14 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     
     var outputFormat = ""
     var baseUrl = ""
-    var streamName: String?
-    
+//    var streamName: String?
+//    var queryString = ""
     let options: FFmpegOptions!
     
     
     var url: String {
         get {
-            if streamName != nil {
-                return "\(baseUrl)/\(streamName!)"
-            } else {
-                return baseUrl
-            }
+            return baseUrl
         }
     }
     
@@ -122,7 +119,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     
     private var delegate: FFmpegUtilsDelegate?
     
-    init(outputFormat: String, url: String,options: FFmpegOptions, delegate: FFmpegUtilsDelegate?) {
+    init(outputFormat: String, url: String, options: FFmpegOptions, delegate: FFmpegUtilsDelegate?) {
         self.options = options
         super.init()
         self.outputFormat = outputFormat
@@ -183,7 +180,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     var recordingState: RecordingState = .Normal {
         willSet {
             DispatchQueue.main.async {
-                self.delegate?.FFmpegUtils(didChange: newValue)
+                self.delegate?._FFLiveKit(didChange: newValue)
             }
             switch newValue {
             case .Normal:
@@ -225,8 +222,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
         }
     }
     
-    func start(videoRec: Bool = true, audioRec: Bool = true, fileRec: Bool, streamName: String?) {
-        self.streamName = streamName
+    func start(videoRec: Bool = true, audioRec: Bool = true, fileRec: Bool) {
         if videoRec && audioRec {
             self.recordingType = .Camera_Microphone
         } else if videoRec {
@@ -367,12 +363,12 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     }
     
     private func executeVideoOnly() {
-        let cmd = "-re \(generateVideoInputCommand()) \(generateVideoOutputCommand()) -f \(outputFormat) \(url)"
+        let cmd = "-re \(generateVideoInputCommand()) \(generateVideoOutputCommand()) -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }
     
     private func executeAudioOnly() {
-        let cmd = "-re \(generateAudioInputCommand()) -vn \(generateAudioOutputCommand()) -f \(outputFormat) \(url)"
+        let cmd = "-re \(generateAudioInputCommand()) -vn \(generateAudioOutputCommand()) -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }
     
@@ -385,38 +381,48 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
     }
     
     private func executeVideo_Audio() {
-        let cmd = "-re \(generateVideoInputCommand()) \(generateAudioInputCommand()) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \(url)"
+        let cmd = "-re \(generateVideoInputCommand()) \(generateAudioInputCommand()) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \"\(url)\""
         
         execute(cmd: cmd)
     }
     
     private func executeFile() {
-        let cmd = "-re \(generateFileInputCommand()) \(generateFileOutputCommand()) -f \(outputFormat) \(url)"
+        let cmd = "-re \(generateFileInputCommand()) \(generateFileOutputCommand()) -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }
     
     private func execute(cmd: String) {
         print("Executing \(cmd)..........")
         FFmpegKit.executeAsync(cmd, withCompleteCallback: {session in
+            if let session = session {
+                if let stats = session.getStatistics().first as? Statistics {
+                    DispatchQueue.main.async {
+                        self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, isVideoRecording: false, isAudioRecording: false))
+                    }
+                }
+                if let code = session.getReturnCode() {
+                    if ReturnCode.isSuccess(code) {
+                        print("Finished")
+                    } else if ReturnCode.isCancel(code) {
+                        print("Cancelled")
+                    } else {
+                        print("Error")
+                        DispatchQueue.main.async {
+                            let output = session.getOutput() ?? ""
+                            self.delegate?._FFLiveKit(onError: output)
+                        }
+                    }
+                }
+                
+            }
             self.stop()
         }, withLogCallback: nil, withStatisticsCallback: {stats in
             guard let stats = stats else {
                 return
             }
             /// For Video
-            if stats.getVideoFps() > 0 {
-                if self.isVideoRecording == false {
-                    DispatchQueue.main.async {
-                        //                            self.delegate?.didVideoRecordingStatusChanged(isVideoRecording: true)
-                    }
-                }
+            if stats.getVideoFps() > 0 || stats.getTime() > 0 {
                 self.isVideoRecording = true
-            } else if stats.getSize() > 0, stats.getVideoFps() == 0 {
-                if self.isAudioRecording == false {
-                    DispatchQueue.main.async {
-                        //                            self.delegate?.didAudioRecordingStatusChanged(isAudioRecording: true)
-                    }
-                }
                 self.isAudioRecording = true
             }
             if self.recordingState == .RequestRecording {
@@ -437,7 +443,7 @@ class FFmpegUtils: NSObject, CameraSourceDelegate, MicrophoneSourceDelegate {
                 }
             }
             DispatchQueue.main.async {
-                self.delegate?.FFmpegUtils(onStats: FFStat(stat: stats, isVideoRecording: self.isVideoRecording, isAudioRecording: self.isAudioRecording))
+                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, isVideoRecording: self.isVideoRecording, isAudioRecording: self.isAudioRecording))
             }
         })
     }

@@ -28,16 +28,28 @@
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WWn-fN-v6h">
                                                     <rect key="frame" x="270" y="32.666666666666629" width="107" height="35"/>
-                                                    <color key="tintColor" systemColor="systemOrangeColor"/>
+                                                    <color key="tintColor" systemColor="underPageBackgroundColor"/>
                                                     <state key="normal" title="Button"/>
                                                     <buttonConfiguration key="configuration" style="filled" image="camera.rotate.fill" catalog="system" title="Switch"/>
                                                     <connections>
                                                         <action selector="onCameraSwitch:" destination="Oyo-HH-7Ya" eventType="touchUpInside" id="05Z-I1-HH3"/>
                                                     </connections>
                                                 </button>
+                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="NbT-tM-SfK">
+                                                    <rect key="frame" x="16" y="32.666666666666629" width="91.333333333333329" height="35"/>
+                                                    <color key="tintColor" systemColor="underPageBackgroundColor"/>
+                                                    <state key="normal" title="Button"/>
+                                                    <buttonConfiguration key="configuration" style="filled" image="flashlight.off.fill" catalog="system" title="Toggle"/>
+                                                    <connections>
+                                                        <action selector="toggleTorch:" destination="Oyo-HH-7Ya" eventType="touchUpInside" id="PYa-hG-gxD"/>
+                                                    </connections>
+                                                </button>
                                             </subviews>
                                             <constraints>
+                                                <constraint firstItem="NbT-tM-SfK" firstAttribute="centerY" secondItem="WWn-fN-v6h" secondAttribute="centerY" id="6Kk-ER-YHO"/>
+                                                <constraint firstItem="NbT-tM-SfK" firstAttribute="centerY" secondItem="Sff-dh-gm0" secondAttribute="centerY" id="Cs0-fa-MZw"/>
                                                 <constraint firstItem="WWn-fN-v6h" firstAttribute="centerY" secondItem="Sff-dh-gm0" secondAttribute="centerY" id="bGD-94-Cbn"/>
+                                                <constraint firstItem="NbT-tM-SfK" firstAttribute="leading" secondItem="Sff-dh-gm0" secondAttribute="leading" constant="16" id="p6n-eS-FIf"/>
                                                 <constraint firstAttribute="trailing" secondItem="WWn-fN-v6h" secondAttribute="trailing" constant="16" id="pFm-rp-0s3"/>
                                             </constraints>
                                         </view>
@@ -113,14 +125,15 @@
     </scenes>
     <resources>
         <image name="camera.rotate.fill" catalog="system" width="128" height="93"/>
-        <systemColor name="systemOrangeColor">
-            <color red="1" green="0.58431372550000005" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
+        <image name="flashlight.off.fill" catalog="system" width="72" height="128"/>
         <systemColor name="systemPinkColor">
-            <color red="1" green="0.1764705882" blue="0.33333333329999998" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="1" green="0.17647058823529413" blue="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemTealColor">
-            <color red="0.18823529410000001" green="0.69019607839999997" blue="0.78039215689999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.18823529411764706" green="0.69019607843137254" blue="0.7803921568627451" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="underPageBackgroundColor">
+            <color red="0.70980392156862748" green="0.71764705882352942" blue="0.74117647058823533" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
