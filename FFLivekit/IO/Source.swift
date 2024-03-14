@@ -7,8 +7,13 @@
 
 import Foundation
 
+public enum SourceType {
+    case Audio
+    case Video
+}
+
 public protocol SourceDelegate {
-    func _Source(_ source: Source, onData: Data)
+    func _Source(_ source: Source,type: SourceType, onData: Data)
     func _Source(_ source: Source, extra: [String: Any])
 }
 

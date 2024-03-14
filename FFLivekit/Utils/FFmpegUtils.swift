@@ -126,7 +126,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
   
     var audioPipe: String?
     var videoPipe: String?
-    
+    var sources: [Source] = []
     var outputFormat = ""
     var baseUrl = ""
 //    var streamName: String?
@@ -168,9 +168,20 @@ class FFmpegUtils: NSObject, SourceDelegate {
     
     private var delegate: FFmpegUtilsDelegate?
     
-    init(outputFormat: String, url: String, delegate: FFmpegUtilsDelegate?, options: [FFLivekitSettings]) {
+    init(sources: [Source], outputFormat: String, url: String, delegate: FFmpegUtilsDelegate?, options: [FFLivekitSettings]) {
         self.options = FFmpegOptions(settings: options)
         super.init()
+        self.sources = sources
+        /// delegate
+        for var source in sources {
+            source.delegate = self
+        }
+        /// start the source
+        for source in sources {
+            source.start()
+        }
+        self.inputCommands = getInputCommands()
+        self.encoders = getEncoders()
         self.outputFormat = outputFormat
         self.baseUrl = url
         self.delegate = delegate
@@ -265,10 +276,20 @@ class FFmpegUtils: NSObject, SourceDelegate {
         }
     }
     
-    func start(inputcommands: [String], encoders: [String]) {
-        self.inputCommands = inputcommands
-        self.encoders = encoders
+    func start() {
         recordingState = .RequestRecording
+    }
+    
+    func getInputCommands() -> [String] {
+        let inputs = sources.map({source in
+            return source.command
+        })
+        return inputs
+    }
+    
+    func getEncoders() -> [String] {
+        let encoders = sources.map { $0.encoder!.command }
+        return encoders
     }
     
     func stop() {
@@ -290,10 +311,17 @@ class FFmpegUtils: NSObject, SourceDelegate {
     
     @objc func handleFeed() {
         if isInBackground {
-            self.appendToVideoBuffer(data: self.blankFrames!)
-            if self.videoDataBuffer.count > 10*1000000 {
-                print("Flushing....")
-                self.feedToVideoPipe()
+            /// check if it has video source
+            let contains = sources.contains(where: {source in
+                return source is CameraSource || source is FileSource
+            })
+            print("Contains -> \(contains)")
+            if contains {
+                self.appendToVideoBuffer(data: self.blankFrames!)
+                if self.videoDataBuffer.count > 10*1000000 {
+                    print("Flushing....")
+                    self.feedToVideoPipe()
+                }
             }
         } else {
             feedToVideoPipe()
@@ -479,7 +507,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
 //    }
     
     
-    func _Source(_ source: Source, onData: Data) {
+    func _Source(_ source: Source,type: SourceType, onData: Data) {
         if self.enableWritingToPipe {
             if source is CameraSource {
                 if !self.isInBackground, let data = isInBackground ? blankFrames : onData {
@@ -497,6 +525,18 @@ class FFmpegUtils: NSObject, SourceDelegate {
                         self.writeToAudioPipe(data: onData)
                     } else {
                         self.appendToAudioBuffer(data: onData)
+                    }
+                }
+            } else if source is ScreenSource {
+                if type == .Video {
+                    if self.recordingState == .RequestRecording {
+                        self.writeToVideoPipe(data: onData)
+                    } else if self.recordingState == .Recording {
+                        if isInBackground {
+                            self.writeToVideoPipe(data: onData)
+                        } else {
+                            self.appendToVideoBuffer(data: onData)
+                        }
                     }
                 }
             }

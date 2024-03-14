@@ -17,10 +17,25 @@
 		D3A257392B8BFD2900B69B54 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D3A257372B8BFD2900B69B54 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		D3893C1C2BA1F487003D69A0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		17AE0299CEBC43D9EFBBEE6D /* Pods-live-demo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-live-demo.release.xcconfig"; path = "Target Support Files/Pods-live-demo/Pods-live-demo.release.xcconfig"; sourceTree = "<group>"; };
 		B46632C18825C406E474741D /* Pods_live_demo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_live_demo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D30E1B1E2B9D666F00D78458 /* TestViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestViewController.swift; sourceTree = "<group>"; };
+		D3893C042BA1F487003D69A0 /* ReplayKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReplayKit.framework; path = System/Library/Frameworks/ReplayKit.framework; sourceTree = SDKROOT; };
+		D3893C102BA1F487003D69A0 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		D3A257292B8BFD2800B69B54 /* live-demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "live-demo.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3A2572C2B8BFD2800B69B54 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D3A2572E2B8BFD2800B69B54 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -48,6 +63,8 @@
 			isa = PBXGroup;
 			children = (
 				B46632C18825C406E474741D /* Pods_live_demo.framework */,
+				D3893C042BA1F487003D69A0 /* ReplayKit.framework */,
+				D3893C102BA1F487003D69A0 /* UIKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -114,6 +131,7 @@
 				D3A257262B8BFD2800B69B54 /* Frameworks */,
 				D3A257272B8BFD2800B69B54 /* Resources */,
 				F2DDB71F21D5BD3446B1463D /* [CP] Embed Pods Frameworks */,
+				D3893C1C2BA1F487003D69A0 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -131,7 +149,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1520;
+				LastSwiftUpdateCheck = 1530;
 				LastUpgradeCheck = 1520;
 				TargetAttributes = {
 					D3A257282B8BFD2800B69B54 = {
@@ -369,12 +387,13 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = E713281D99B7811BD664DE09 /* Pods-live-demo.debug.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UY9S8H9G47;
+				DEVELOPMENT_TEAM = 22FP2489HT;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -394,7 +413,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.sudayn.livedemotest.live-demo";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.slivedemotest.live-demo";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -407,12 +426,13 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 17AE0299CEBC43D9EFBBEE6D /* Pods-live-demo.release.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UY9S8H9G47;
+				DEVELOPMENT_TEAM = 22FP2489HT;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -432,7 +452,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.sudayn.livedemotest.live-demo";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.slivedemotest.live-demo";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;

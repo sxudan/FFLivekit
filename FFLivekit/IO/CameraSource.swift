@@ -164,7 +164,7 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output is AVCaptureVideoDataOutput {
             if running, let data = BufferConverter.extractBGRAData(from: sampleBuffer) {
-                self.delegate?._Source(self, onData: data)
+                self.delegate?._Source(self, type: .Video, onData: data)
             }
         }
     }

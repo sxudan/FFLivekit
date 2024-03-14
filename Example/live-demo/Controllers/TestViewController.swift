@@ -17,18 +17,18 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     @IBOutlet weak var audioRecLabel: UILabel!
     @IBOutlet weak var videoRecLabel: UILabel!
     
-    let cameraSource = CameraSource(position: .front, preset: .hd1280x720)
+//    let cameraSource = CameraSource(position: .front, preset: .hd1280x720)
+    let screenSource = ScreenSource()
     let microphoneSource = try! MicrophoneSource()
     let fileSource = FileSource(filetype: "mp4", url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
     let ffLiveKit = FFLiveKit(options: [.outputVideoSize((360, 640)), .outputVideoBitrate("400k")])
     var isRecording = false
     
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         ffLiveKit.addSources(sources: [microphoneSource])
-        cameraSource.startPreview(previewView: self.view)
+//        cameraSource.startPreview(previewView: self.view)
         /// initialize the connections
         let srtConnection = try! SRTConnection(baseUrl: "srt://192.168.1.100:8890?streamid=publish:mystream&pkt_size=1316")
         let rtmpConnection = try! RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935/mystream")
@@ -65,17 +65,23 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     @IBAction func onTap(_ sender: Any) {
         if !isRecording {
             try? ffLiveKit.publish()
+//            screenSource.start()
+
+            
         } else {
             ffLiveKit.stop()
+//            screenSource.stop()
+    
         }
+//        isRecording = !isRecording
     }
     
     @IBAction func toggleTorch(_ sender: Any) {
-        cameraSource.toggleTorch()
+//        cameraSource.toggleTorch()
     }
     
     @IBAction func onCameraSwitch(_ sender: Any) {
-        cameraSource.switchCamera()
+//        cameraSource.switchCamera()
     }
     
     func initStartActionBtn() {

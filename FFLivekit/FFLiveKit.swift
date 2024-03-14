@@ -43,25 +43,12 @@ public class FFLiveKit {
     
     public func prepare(delegate: FFLiveKitDelegate?) {
         self.delegate = delegate
-        ffmpegUtil = FFmpegUtils(outputFormat: connection!.fileType, url: connection!.baseUrl, delegate: delegate, options: options)
-        /// delegate
-        for var source in sources {
-            source.delegate = ffmpegUtil
-        }
-//        cameraSource?.delegate = ffmpegUtil
-//        microphoneSource?.delegate = ffmpegUtil
+        ffmpegUtil = FFmpegUtils(sources: sources, outputFormat: connection!.fileType, url: connection!.baseUrl, delegate: delegate, options: options)
     }
     
     public func addSources(sources: [Source]) {
         self.sources = sources
     }
-    
-//    public func addSource(camera: CameraSource?, microphone: MicrophoneSource?, file: FileSource?) {
-//        self.cameraSource = camera
-//        self.microphoneSource = microphone
-//        self.fileSource = file
-//        
-//    }
     
     /// Publish the stream to the server. For example: <url>/mystream?pkt_size=1024:name=hello
     /// - Parameters:
@@ -72,15 +59,7 @@ public class FFLiveKit {
             throw FFLiveKitError.NotInitialized
         }
         self.url = connection.baseUrl
-        let inputs = sources.map({source in
-            return source.command
-        })
-        for source in sources {
-            source.start()
-        }
-        let encoders = sources.map { $0.encoder!.command }
-        print(encoders)
-        ffmpegUtil?.start(inputcommands: inputs, encoders: encoders)
+        ffmpegUtil?.start()
     }
     
     public func stop() {

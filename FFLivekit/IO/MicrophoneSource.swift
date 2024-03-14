@@ -51,7 +51,7 @@ public class MicrophoneSource: Source {
             
             let audioData = BufferConverter.bufferToData(buffer: convertedBuffer)
             self.backgroundAudioQueue.async {
-                self.delegate?._Source(self, onData: audioData)
+                self.delegate?._Source(self, type: .Audio, onData: audioData)
             }
         }
     }
