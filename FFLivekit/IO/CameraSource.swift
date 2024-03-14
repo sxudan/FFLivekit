@@ -25,13 +25,12 @@ public class CameraSource: Source, AVCaptureVideoDataOutputSampleBufferDelegate 
 //    public var delegate: CameraSourceDelegate?
     var currentCameraPosition: AVCaptureDevice.Position?
     
-    public init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080, encoder: Encoder = H264_VTEncoder()) {
+    public init(position: AVCaptureDevice.Position, preset: AVCaptureSession.Preset = .hd1920x1080) {
         super.init()
         /// setup session
         /// calculates the dimensions
         session = setupCaptureSession(position: position, preset: preset)
         command = "-f rawvideo -pixel_format bgra -video_size \(dimensions.0)x\(dimensions.1) -framerate 30 -i %videoPipe%"
-        self.encoder = encoder
         ///set delegate
         videoOutput.setSampleBufferDelegate(self, queue: backgroundVideoQueue)
         DispatchQueue.global().async {

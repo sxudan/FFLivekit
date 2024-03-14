@@ -19,7 +19,7 @@ public protocol SourceDelegate {
 
 public class Source: FFmpegBlock {
     var delegate: SourceDelegate?
-    var encoder: Encoder?
+//    var encoder: Encoder?
     
     public func start() {}
     public func stop() {}

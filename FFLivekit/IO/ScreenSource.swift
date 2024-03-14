@@ -19,7 +19,7 @@ public class ScreenSource: Source {
     public init(encoder: Encoder = H264_VTEncoder()) {
         
         super.init()
-        self.encoder = encoder
+//        self.encoder = encoder
         command = "-f rawvideo -pixel_format bgra -video_size \(888)x\(1920) -framerate 30 -i %videoPipe%"
     }
     

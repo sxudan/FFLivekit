@@ -70,6 +70,8 @@ public enum FFLivekitSettings {
     /// 2 - Rotate 90 degrees counterclockwise.
     /// 3 - Rotate 90 degrees clockwise and flip vertically.
     case outputVideoTranspose(Int?)
+    case videoEncoder(Encoder?)
+    case audioEncoder(Encoder?)
 }
 
 
@@ -81,14 +83,18 @@ struct FFmpegOptions {
     var outputVideoBitrate: String
     var outputAudioBitrate: String
     var outputVideoTranspose: Int?
+    var videoEncoder: Encoder
+    var audioEncoder: Encoder
     
-    init(outputVideoFramerate: Int, outputVideoPixelFormat: String, outputVideoSize: (Int, Int), outputVideoBitrate: String, outputAudioBitrate: String, outputVideoTranspose: Int?) {
+    init(outputVideoFramerate: Int, outputVideoPixelFormat: String, outputVideoSize: (Int, Int), outputVideoBitrate: String, outputAudioBitrate: String,videoEncoder: Encoder, audioEncoder: Encoder, outputVideoTranspose: Int?) {
         self.outputVideoFramerate = outputVideoFramerate
         self.outputVideoPixelFormat = outputVideoPixelFormat
         self.outputVideoSize = outputVideoSize
         self.outputVideoBitrate = outputVideoBitrate
         self.outputAudioBitrate = outputAudioBitrate
         self.outputVideoTranspose = outputVideoTranspose
+        self.videoEncoder = videoEncoder
+        self.audioEncoder = audioEncoder
     }
     
     init(settings: [FFLivekitSettings]) {
@@ -104,18 +110,28 @@ struct FFmpegOptions {
                 break
             case .outputVideoSize(let value):
                 self.outputVideoSize = value
+                break
             case .outputVideoFramerate(let value):
                 self.outputVideoFramerate = value
+                break
             case .outputVideoPixelFormat(let value):
                 self.outputVideoPixelFormat = value
+                break
             case .outputVideoTranspose(let value):
                 self.outputVideoTranspose = value
+                break
+            case .videoEncoder(let encoder):
+                self.videoEncoder = encoder ?? Encoder(str: "")
+                break
+            case .audioEncoder(let encoder):
+                self.audioEncoder = encoder ?? Encoder(str: "")
+                break
             }
         }
     }
     
     public static func shared() -> FFmpegOptions {
-        let option = FFmpegOptions(outputVideoFramerate: 30, outputVideoPixelFormat: "yuv420p", outputVideoSize: (1280, 720), outputVideoBitrate: "640k", outputAudioBitrate: "64k", outputVideoTranspose: 1)
+        let option = FFmpegOptions(outputVideoFramerate: 30, outputVideoPixelFormat: "yuv420p", outputVideoSize: (1280, 720), outputVideoBitrate: "640k", outputAudioBitrate: "64k", videoEncoder: H264_VTEncoder(),audioEncoder: AACEncoder(), outputVideoTranspose: 1)
         return option
     }
     
@@ -152,7 +168,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
     
     var inputCommands: [String] = []
 //    var outputCommands: [String] = []
-    var encoders: [String] = []
+//    var encoders: [String] = []
     
     /// threads
     private let background = DispatchQueue.global(qos: .background)
@@ -181,7 +197,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
             source.start()
         }
         self.inputCommands = getInputCommands()
-        self.encoders = getEncoders()
+//        self.encoders = getEncoders()
         self.outputFormat = outputFormat
         self.baseUrl = url
         self.delegate = delegate
@@ -287,10 +303,10 @@ class FFmpegUtils: NSObject, SourceDelegate {
         return inputs
     }
     
-    func getEncoders() -> [String] {
-        let encoders = sources.map { $0.encoder!.command }
-        return encoders
-    }
+//    func getEncoders() -> [String] {
+//        let encoders = sources.map { $0.encoder!.command }
+//        return encoders
+//    }
     
     func stop() {
         recordingState = .RequestStop
@@ -451,7 +467,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
 
     private func executeCommand() {
         let inputs = self.inputCommands.joined(separator: " ").replacingOccurrences(of: "%videoPipe%", with: videoPipe!).replacingOccurrences(of: "%audioPipe%", with: audioPipe!)
-        let encoders = self.encoders.joined(separator: " ")
+        let encoders = [self.options.videoEncoder.command, self.options.audioEncoder.command].joined(separator: " ")
         let cmd = "-re \(inputs) \(encoders) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }

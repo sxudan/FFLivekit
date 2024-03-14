@@ -14,6 +14,6 @@ public class FileSource: Source {
         self.path = url
         super.init()
         command = "-f \(filetype) -i \(url)"
-        encoder = Encoder(str: "-c:v h264 -c:a aac")
+//        encoder = Encoder(str: "-c:v h264 -c:a aac")
     }
 }

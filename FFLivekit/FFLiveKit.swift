@@ -25,7 +25,7 @@ public class FFLiveKit {
     private var delegate: FFLiveKitDelegate?
     
     private var sources: [Source] = []
-    
+    private var encoders: [Encoder] = []
     private var options: [FFLivekitSettings] = []
     
     public init(options: [FFLivekitSettings] = []) {

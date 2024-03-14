@@ -17,10 +17,9 @@ public class MicrophoneSource: Source {
     let backgroundAudioQueue = DispatchQueue.global(qos: .background)
 //    var delegate: MicrophoneSourceDelegate?
     
-    public init(sampleRate: Double = 48000, encoder: Encoder = AACEncoder()) throws {
+    public init(sampleRate: Double = 48000) throws {
         super.init()
         command = "-f s16le -ar \(sampleRate) -ac 1 -itsoffset -5 -i %audioPipe%"
-        self.encoder = encoder
         setupSession(sampleRate: sampleRate)
         try setupAudioEngine(sampleRate: sampleRate)
     }
