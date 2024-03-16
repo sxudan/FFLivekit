@@ -1,23 +1,27 @@
 PODS:
-  - FFLivekit (0.0.1):
+  - FFLivekit (0.1.0):
     - ffmpeg-kit-srt
   - ffmpeg-kit-srt (2.0.0)
+  - MobileVLCKit (3.5.1)
 
 DEPENDENCIES:
   - FFLivekit (from `../`)
+  - MobileVLCKit
 
 SPEC REPOS:
   trunk:
     - ffmpeg-kit-srt
+    - MobileVLCKit
 
 EXTERNAL SOURCES:
   FFLivekit:
     :path: "../"
 
 SPEC CHECKSUMS:
-  FFLivekit: 818511aedc9033e4f35636dccf42e1edd3c3ae77
+  FFLivekit: 86d749f291cd8d688de5ededa7c5ef14b04b4463
   ffmpeg-kit-srt: 21d77ca2a936c9cc41119832e3bce0eca80c425b
+  MobileVLCKit: 144d5f565512d1147d63b0fa1379231b3fd66535
 
-PODFILE CHECKSUM: 5b0da832d0454c538fea7c3deeb3d8b6cf1a8d12
+PODFILE CHECKSUM: 1b522909d6119e1ed43f11a518aee6169c536a3d
 
 COCOAPODS: 1.14.3

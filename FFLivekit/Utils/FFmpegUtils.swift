@@ -26,8 +26,10 @@ public class FFStat {
     public let quality: Float
     public let frameNumber: Int32
     public let sessionId: Int
+    public let currentAudioBufferSize: Int
+    public let currentVideoBufferSize: Int
     
-    init(stat: Statistics) {
+    init(stat: Statistics, audioBufferSize: Int, videoBufferSize: Int) {
         bitrate = stat.getBitrate()
         size = stat.getSize()
         time = stat.getTime()
@@ -37,6 +39,8 @@ public class FFStat {
         quality = stat.getVideoQuality()
         frameNumber = stat.getVideoFrameNumber()
         sessionId = stat.getSessionId()
+        currentAudioBufferSize = audioBufferSize
+        currentVideoBufferSize = videoBufferSize
     }
     
     
@@ -44,7 +48,9 @@ public class FFStat {
 
 public enum RecordingState {
     case RequestRecording
-    case Recording
+    case Booting
+    case Recording(useBuffer: Bool)
+    case BackgroundRecording
     case RequestStop
     case Normal
 }
@@ -138,8 +144,7 @@ struct FFmpegOptions {
 }
 
 class FFmpegUtils: NSObject, SourceDelegate {
-  
-  
+
     var audioPipe: String?
     var videoPipe: String?
     var sources: [Source] = []
@@ -148,6 +153,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
 //    var streamName: String?
 //    var queryString = ""
     let options: FFmpegOptions!
+    var currentStats: Statistics?
     
     
     var url: String {
@@ -157,9 +163,11 @@ class FFmpegUtils: NSObject, SourceDelegate {
     }
     
     var enableWritingToPipe = false
-    var isInBackground = false
+//    var useBuffer = true
+//    var isInBackground = false
     
     private var videoTimer: Timer?
+    private var statsTimer: Timer?
     private var blankFrames: Data?
     private var videoFileDescriptor: Int32!
     private var audioFileDescriptor: Int32!
@@ -191,10 +199,6 @@ class FFmpegUtils: NSObject, SourceDelegate {
         /// delegate
         for var source in sources {
             source.delegate = self
-        }
-        /// start the source
-        for source in sources {
-            source.start()
         }
         self.inputCommands = getInputCommands()
 //        self.encoders = getEncoders()
@@ -233,7 +237,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
             // Handle the interruption as needed
             if reasonValue == 1 {
                 blankFrames = BufferConverter.createEmptyRGBAData(width: 1920, height: 1080)
-                isInBackground = true
+                self.recordingState = .BackgroundRecording
             }
         }
     }
@@ -241,10 +245,13 @@ class FFmpegUtils: NSObject, SourceDelegate {
     // Handle AVCaptureSession interruption ended
     @objc func sessionInterruptionEnded(notification: Notification) {
         print("AVCaptureSession interruption ended.")
-        isInBackground = false
+        self.recordingState = .Recording(useBuffer: false)
         blankFrames = nil
+        self.feedToVideoPipe()
+        self.feedToAudioPipe()
         clearVideoBuffer()
         clearAudioBuffer()
+        
     }
     
     // Remove observers when the view controller is deallocated
@@ -259,14 +266,15 @@ class FFmpegUtils: NSObject, SourceDelegate {
             DispatchQueue.main.async {
                 self.delegate?._FFLiveKit(didChange: newValue)
             }
+            print("STATE => \(newValue)")
             switch newValue {
             case .Normal:
                 enableWritingToPipe = false
                 break
             case .RequestRecording:
+//                useBuffer = true
                 clearVideoBuffer()
                 clearAudioBuffer()
-                enableWritingToPipe = true
                 /// initialize pipes
                 createPipes()
                 background.async {
@@ -274,8 +282,12 @@ class FFmpegUtils: NSObject, SourceDelegate {
                 }
                 startTimer()
                 break
-            case .Recording:
+            case .Booting:
                 enableWritingToPipe = true
+                break
+            case .Recording:
+                break
+            case .BackgroundRecording:
                 break
             case .RequestStop:
                 enableWritingToPipe = false
@@ -293,6 +305,10 @@ class FFmpegUtils: NSObject, SourceDelegate {
     }
     
     func start() {
+        /// start the source
+        for source in sources {
+            source.start()
+        }
         recordingState = .RequestRecording
     }
     
@@ -314,7 +330,9 @@ class FFmpegUtils: NSObject, SourceDelegate {
     
     private func stopTimer() {
         videoTimer?.invalidate()
+        statsTimer?.invalidate()
         videoTimer = nil
+        statsTimer = nil
     }
     
     private func startTimer() {
@@ -326,9 +344,10 @@ class FFmpegUtils: NSObject, SourceDelegate {
     }
     
     @objc func handleFeed() {
-        if isInBackground {
-            /// check if it has video source
-            let contains = sources.contains(where: {source in
+        switch self.recordingState {
+        case .BackgroundRecording:
+            // check if it has video source
+            let contains = self.sources.contains(where: {source in
                 return source is CameraSource || source is FileSource
             })
             print("Contains -> \(contains)")
@@ -339,9 +358,17 @@ class FFmpegUtils: NSObject, SourceDelegate {
                     self.feedToVideoPipe()
                 }
             }
-        } else {
-            feedToVideoPipe()
-            feedToAudioPipe()
+            break
+//        case .Recording(useBuffer: let useBuffer):
+//            if useBuffer {
+//                self.feedToVideoPipe()
+//                self.feedToAudioPipe()
+////                self.showStats()
+//            }
+//            break
+        default:
+            break
+            
         }
     }
     
@@ -472,6 +499,14 @@ class FFmpegUtils: NSObject, SourceDelegate {
         execute(cmd: cmd)
     }
     
+    private func showStats() {
+        if let stats = currentStats {
+            DispatchQueue.main.async {
+                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, audioBufferSize: self.audioDataBuffer.count, videoBufferSize: self.videoDataBuffer.count))
+            }
+        }
+    }
+    
     
     private func execute(cmd: String) {
         print("Executing \(cmd)..........")
@@ -479,7 +514,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
             if let session = session {
                 if let stats = session.getStatistics().first as? Statistics {
                     DispatchQueue.main.async {
-                        self.delegate?._FFLiveKit(onStats: FFStat(stat: stats))
+                        self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, audioBufferSize: self.audioDataBuffer.count, videoBufferSize: self.videoDataBuffer.count))
                     }
                 }
                 if let code = session.getReturnCode() {
@@ -498,17 +533,41 @@ class FFmpegUtils: NSObject, SourceDelegate {
                 
             }
             self.stop()
-        }, withLogCallback: nil, withStatisticsCallback: {stats in
+        }, withLogCallback: {_ in
+            DispatchQueue.global().asyncAfter(deadline: .now() + 1.0, execute: {
+                switch self.recordingState {
+                case .RequestRecording:
+                    self.recordingState = .Booting
+                default:
+                    break
+                }
+                
+            })
+            self.showStats()
+        }, withStatisticsCallback: {stats in
             guard let stats = stats else {
                 return
             }
+            self.currentStats = stats
             /// For Video
-            if stats.getTime() > 0 {
-                self.recordingState = .Recording
+            if stats.getTime() > 0 && stats.getVideoFps() > 10 {
+                switch self.recordingState {
+                case .Booting:
+                    self.recordingState = .Recording(useBuffer: false)
+                    break
+//                case .Recording(useBuffer: let useBuffer):
+//                    if !useBuffer {
+//                        self.recordingState = .Recording(useBuffer: true)
+//                        break
+//                    }
+                default:
+                    break
+                }
             }
-            DispatchQueue.main.async {
-                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats))
-            }
+            self.showStats()
+//            DispatchQueue.main.async {
+//                self.delegate?._FFLiveKit(onStats: FFStat(stat: stats, audioBufferSize: self.audioDataBuffer.count, videoBufferSize: self.videoDataBuffer.count))
+//            }
         })
     }
     
@@ -526,41 +585,53 @@ class FFmpegUtils: NSObject, SourceDelegate {
     func _Source(_ source: Source,type: SourceType, onData: Data) {
         if self.enableWritingToPipe {
             if source is CameraSource {
-                if !self.isInBackground, let data = isInBackground ? blankFrames : onData {
-                    if self.recordingState == .RequestRecording {
-                        self.writeToVideoPipe(data: data)
-                    } else if self.recordingState == .Recording {
-                        self.appendToVideoBuffer(data: data)
+                print("Video source running")
+                switch self.recordingState {
+                case .Booting:
+                    self.writeToVideoPipe(data: onData)
+                    break
+                case .Recording(useBuffer: let useBuffer):
+                    if useBuffer {
+                        self.appendToVideoBuffer(data: onData)
+                    } else {
+                        self.writeToVideoPipe(data: onData)
                     }
+                    break
+                default:
+                    break
                 }
             } else if source is MicrophoneSource {
-                if self.recordingState == .RequestRecording {
+                switch self.recordingState {
+                case .Booting:
                     self.writeToAudioPipe(data: onData)
-                } else if self.recordingState == .Recording {
-                    if isInBackground {
-                        self.writeToAudioPipe(data: onData)
-                    } else {
-                        self.appendToAudioBuffer(data: onData)
-                    }
-                }
-            } else if source is ScreenSource {
-                if type == .Video {
-                    if self.recordingState == .RequestRecording {
-                        self.writeToVideoPipe(data: onData)
-                    } else if self.recordingState == .Recording {
-                        if isInBackground {
-                            self.writeToVideoPipe(data: onData)
-                        } else {
-                            self.appendToVideoBuffer(data: onData)
-                        }
-                    }
+                    break
+                case .Recording(useBuffer: let useBuffer):
+                    self.writeToAudioPipe(data: onData)
+//                    if useBuffer {
+//                        self.appendToAudioBuffer(data: onData)
+//                    } else {
+//                        self.writeToAudioPipe(data: onData)
+//                    }
+                    break
+                case .BackgroundRecording:
+                    self.writeToAudioPipe(data: onData)
+                    break
+                default:
+                    break
                 }
             }
+//            runStatsManager()
         }
     }
     
+    func _Source(_ source: Source, type: SourceType, onPath: String) {
+        
+    }
+    
+    
     func _Source(_ source: Source, extra: [String : Any]) {
-        if self.recordingState == .Recording {
+        switch self.recordingState {
+        case .Recording(useBuffer: let useBuffer):
             if source is CameraSource {
                 if let switchStarted = extra["switchStarted"] as? Bool {
                     if switchStarted == true {
@@ -573,6 +644,9 @@ class FFmpegUtils: NSObject, SourceDelegate {
                 }
                 
             }
+            break
+        default:
+            break
         }
     }
 }

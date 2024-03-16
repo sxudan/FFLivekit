@@ -7,4 +7,5 @@ target 'live-demo' do
 
   # Pods for live-demo
 pod 'FFLivekit', :path=> '../'
+pod 'MobileVLCKit'
 end
