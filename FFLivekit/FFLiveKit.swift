@@ -7,14 +7,17 @@
 
 import Foundation
 
-enum FFLiveKitError: Error {
-    case NotInitialized
-    case EmptyUrl
-    case IOError(message: String)
+public enum FFLiveKitError: Error {
+    case notInitialized
+    case emptyUrl
+    case noConnection
+    case noSources
+    case sourceMissingEncoder(Source)
+    case ioError(message: String)
 }
 
 public protocol FFLiveKitDelegate: FFmpegUtilsDelegate {
-    
+    // Inherits all methods from FFmpegUtilsDelegate
 }
 
 public class FFLiveKit {
@@ -22,7 +25,7 @@ public class FFLiveKit {
     private var connection: Connection?
     private var url = ""
     var ffmpegUtil: FFmpegUtils?
-    private var delegate: FFLiveKitDelegate?
+    private weak var delegate: FFLiveKitDelegate?
     
     private var sources: [Source] = []
     
@@ -34,25 +37,31 @@ public class FFLiveKit {
     
     
     public func connect(connection: Connection) throws {
-        /// compute url
-        if connection.baseUrl.isEmpty {
-            throw FFLiveKitError.EmptyUrl
+        guard !connection.baseUrl.isEmpty else {
+            throw FFLiveKitError.emptyUrl
         }
         self.connection = connection
     }
     
-    public func prepare(delegate: FFLiveKitDelegate?) {
+    public func prepare(delegate: FFLiveKitDelegate?) throws {
+        guard let connection = connection else {
+            throw FFLiveKitError.noConnection
+        }
+        
+        guard !sources.isEmpty else {
+            throw FFLiveKitError.noSources
+        }
+        
         self.delegate = delegate
-        ffmpegUtil = FFmpegUtils(outputFormat: connection!.fileType, url: connection!.baseUrl, delegate: delegate, options: options)
-        /// delegate
-        for var source in sources {
+        ffmpegUtil = FFmpegUtils(outputFormat: connection.fileType, url: connection.baseUrl, delegate: delegate, options: options)
+        
+        // Connect sources to FFmpeg pipeline
+        for source in sources {
             source.delegate = ffmpegUtil
         }
-//        cameraSource?.delegate = ffmpegUtil
-//        microphoneSource?.delegate = ffmpegUtil
     }
     
-    public func addSources(sources: [Source]) {
+    public func addSources(_ sources: [Source]) {
         self.sources = sources
     }
     
@@ -68,19 +77,33 @@ public class FFLiveKit {
     ///   - name: "mystream". name of the stream. No need to add /
     ///   - queryString: pkt_size=1024:name=hello. No need to add ?
     public func publish() throws {
-        guard let connection = self.connection else {
-            throw FFLiveKitError.NotInitialized
+        guard let connection = connection else {
+            throw FFLiveKitError.notInitialized
         }
-        self.url = connection.baseUrl
-        let inputs = sources.map({source in
-            return source.command
-        })
+        
+        guard let ffmpegUtil = ffmpegUtil else {
+            throw FFLiveKitError.notInitialized
+        }
+        
+        // Validate all sources have encoders
         for source in sources {
-            source.start()
+            guard source.encoder != nil else {
+                throw FFLiveKitError.sourceMissingEncoder(source)
+            }
         }
-        let encoders = sources.map { $0.encoder!.command }
-        print(encoders)
-        ffmpegUtil?.start(inputcommands: inputs, encoders: encoders)
+        
+        let inputs = sources.map { $0.command }
+        let encoders = sources.compactMap { $0.encoder?.command }
+        
+        guard encoders.count == sources.count else {
+            throw FFLiveKitError.notInitialized
+        }
+        
+        // Start all sources
+        sources.forEach { $0.start() }
+        
+        // Start FFmpeg pipeline
+        ffmpegUtil.start(inputcommands: inputs, encoders: encoders)
     }
     
     public func stop() {

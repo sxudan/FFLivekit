@@ -1,8 +1,16 @@
-# Overview:
+# FFLiveKit
 
-This is just a research to dig up the power of FFmpegKit to enable live streaming from the device's camera to RTMP or RTSP servers. FFmpegKit provides a convenient wrapper around FFmpeg, making it easy to capture, encode, and transmit audio and video streams.
+A Swift library for live streaming video and audio from iOS devices to RTMP, RTSP, SRT, or UDP servers using FFmpegKit. This project demonstrates how to leverage FFmpegKit to capture, encode, and transmit real-time media streams.
 
-This is also to to check how well it does against the existing live streaming packages like [Haishinkit](https://github.com/shogo4405/HaishinKit.swift)
+## Overview
+
+FFLiveKit provides a high-level API for live streaming that abstracts away the complexity of FFmpeg command-line operations. It handles:
+- Camera and microphone capture
+- Real-time encoding (H.264 video, AAC audio)
+- Network streaming to various protocols
+- Buffer management and data pipeline optimization
+
+This is also a research project to evaluate how well FFmpegKit performs compared to existing live streaming packages like [Haishinkit](https://github.com/shogo4405/HaishinKit.swift).
 
 # Features:
 
@@ -40,6 +48,105 @@ Others minor features
 - [x] Background Publishing
 
 
+# How It Works
+
+## Architecture
+
+FFLiveKit uses a pipeline architecture that efficiently moves data from iOS capture sources through FFmpeg to streaming servers:
+
+```
+[Camera/Mic Sources] → [Data Buffers] → [Named Pipes] → [FFmpeg] → [Streaming Server]
+```
+
+## Data Flow
+
+### 1. Source Capture
+- **CameraSource**: Captures video frames using `AVCaptureSession`, converts to BGRA format
+- **MicrophoneSource**: Captures audio using `AVAudioEngine`, converts to PCM format
+- Data is delivered via delegate callbacks to `FFmpegUtils`
+
+### 2. State Management
+The system operates in four states:
+- **Normal**: Idle, no streaming
+- **RequestRecording**: Initializing pipes and FFmpeg process
+- **Recording**: Actively streaming (data is buffered and fed to FFmpeg)
+- **RequestStop**: Cleaning up and shutting down
+
+### 3. Data Pipeline
+
+#### During RequestRecording State
+- Data is written **directly** to pipes (no buffering)
+- This ensures FFmpeg receives initial frames immediately
+- Helps FFmpeg establish the stream connection faster
+
+#### During Recording State
+- Data is **buffered** in memory (`videoDataBuffer`, `audioDataBuffer`)
+- A 10ms timer continuously feeds buffered data to pipes
+- This provides smooth, continuous data flow to FFmpeg
+
+### 4. Timer-Based Feeding
+- A background timer runs every 10ms (`handleFeed()`)
+- On each tick:
+  - Locks buffers
+  - Writes all buffered video data to video pipe
+  - Writes all buffered audio data to audio pipe
+  - Unlocks buffers
+- This ensures FFmpeg receives data at a steady rate
+
+### 5. Named Pipes
+- FFmpegKit creates named pipes (FIFOs) for video and audio
+- File descriptors are kept open to prevent EOF
+- Persistent `FileHandle` objects are used for efficient writes
+- Falls back to creating new handles if persistent ones fail
+
+### 6. FFmpeg Processing
+- FFmpeg reads from named pipes as input streams
+- Encodes video (H.264 via VideoToolbox) and audio (AAC)
+- Applies filters (scaling, rotation, bitrate control)
+- Streams to destination server (RTMP/RTSP/SRT/UDP)
+
+## Buffer Management
+
+### Overflow Handling
+- Video buffer: Max 100MB, keeps last 50MB if overflow (FIFO)
+- Audio buffer: Max 50MB, keeps last 25MB if overflow (FIFO)
+- Prevents memory issues while maintaining recent data
+
+### Background Mode
+- When app goes to background, sends blank frames to maintain stream
+- Prevents server disconnection during app backgrounding
+- Clears buffers when returning to foreground
+
+## Key Components
+
+### FFLiveKit
+- Main entry point
+- Manages sources, connection, and FFmpeg utilities
+- Provides high-level API for streaming control
+
+### FFmpegUtils
+- Core pipeline manager
+- Handles state transitions
+- Manages buffers, pipes, and timer
+- Implements `SourceDelegate` to receive data from sources
+
+### Source Classes
+- **CameraSource**: AVFoundation-based video capture
+- **MicrophoneSource**: AVAudioEngine-based audio capture
+- **FileSource**: File-based input (for testing)
+
+### Connection Classes
+- Protocol-specific connection handlers (RTMP, RTSP, SRT, UDP)
+- Validates URLs and sets appropriate FFmpeg output format
+
+## Performance Optimizations
+
+1. **Persistent File Handles**: Reuses file handles instead of creating new ones for each write
+2. **Efficient Buffering**: FIFO-based overflow handling prevents memory bloat
+3. **Thread Safety**: Uses locks and dedicated queues for buffer operations
+4. **Timer-Based Feeding**: Ensures steady data rate to FFmpeg (10ms intervals)
+5. **Direct Writes During Init**: Reduces latency when starting stream
+
 # Usage
 
 ### Initialize the Source and FFLiveKit
@@ -63,20 +170,24 @@ let udpConnection = try! UDPConnection(baseUrl: "udp://192.168.1.100:1234?pkt_si
 try! ffLiveKit.connect(connection: rtmpConnection)
 ```
 
-### Add source
+### Add sources and prepare
 ```Swift
-ffLiveKit.addSources(sources: [cameraSource, microphoneSource])
+ffLiveKit.addSources([cameraSource, microphoneSource])
 cameraSource.startPreview(previewView: self.view)
-ffLiveKit.prepare(delegate: self)
+try ffLiveKit.prepare(delegate: self)
 ```
 
 ### Start or Stop
 
 ```Swift
-if !isRecording {
-    try? ffLiveKit.publish()
-} else {
-    ffLiveKit.stop()
+do {
+    if !isRecording {
+        try ffLiveKit.publish()
+    } else {
+        ffLiveKit.stop()
+    }
+} catch {
+    print("Error: \(error)")
 }
 ```
 

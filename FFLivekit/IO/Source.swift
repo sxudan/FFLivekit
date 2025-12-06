@@ -7,13 +7,13 @@
 
 import Foundation
 
-public protocol SourceDelegate {
+public protocol SourceDelegate: AnyObject {
     func _Source(_ source: Source, onData: Data)
     func _Source(_ source: Source, extra: [String: Any])
 }
 
 public class Source: FFmpegBlock {
-    var delegate: SourceDelegate?
+    weak var delegate: SourceDelegate?
     var encoder: Encoder?
     
     public func start() {}

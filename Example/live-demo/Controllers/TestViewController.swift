@@ -27,15 +27,27 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        ffLiveKit.addSources(sources: [microphoneSource])
+        
+        // Setup camera preview
         cameraSource.startPreview(previewView: self.view)
-        /// initialize the connections
-        let srtConnection = try! SRTConnection(baseUrl: "srt://192.168.1.100:8890?streamid=publish:mystream&pkt_size=1316")
-        let rtmpConnection = try! RTMPConnection(baseUrl: "rtmp://192.168.1.100:1935/mystream")
-        let rtspConnection = try! RTSPConnection(baseUrl: "rtsp://192.168.1.100:8554/mystream")
-        let udpConnection = try! UDPConnection(baseUrl: "udp://192.168.1.100:1234?pkt_size=1316")
-        try! ffLiveKit.connect(connection: rtmpConnection)
-        ffLiveKit.prepare(delegate: self)
+        
+        // Add sources
+        ffLiveKit.addSources([cameraSource, microphoneSource])
+        
+        // Initialize connections (example - choose one)
+        do {
+            // You can choose any of these connection types:
+             let srtConnection = try SRTConnection(baseUrl: "srt://192.168.0.135:8890?streamid=publish:mystream&pkt_size=1316")
+//             let rtmpConnection = try RTMPConnection(baseUrl: "rtmp://192.168.0.135:1935/mystream")
+//            let rtspConnection = try RTSPConnection(baseUrl: "rtsp://192.168.0.135:8554/mystream")
+            // let udpConnection = try UDPConnection(baseUrl: "udp://192.168.1.100:1234?pkt_size=1316")
+            
+            try ffLiveKit.connect(connection: srtConnection)
+            try ffLiveKit.prepare(delegate: self)
+        } catch {
+            print("Failed to setup FFLiveKit: \(error)")
+        }
+        
         initStartActionBtn()
     }
     
@@ -64,7 +76,15 @@ class TestViewController: UIViewController, FFLiveKitDelegate {
     
     @IBAction func onTap(_ sender: Any) {
         if !isRecording {
-            try? ffLiveKit.publish()
+            do {
+                try ffLiveKit.publish()
+            } catch {
+                print("Failed to publish: \(error)")
+                // Show error to user
+                let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+            }
         } else {
             ffLiveKit.stop()
         }

@@ -49,7 +49,7 @@ public enum RecordingState {
     case Normal
 }
 
-public protocol FFmpegUtilsDelegate {
+public protocol FFmpegUtilsDelegate: AnyObject {
     func _FFLiveKit(didChange status: RecordingState)
     func _FFLiveKit(onStats stats: FFStat)
     func _FFLiveKit(onError error: String)
@@ -148,6 +148,10 @@ class FFmpegUtils: NSObject, SourceDelegate {
     private var videoFileDescriptor: Int32!
     private var audioFileDescriptor: Int32!
     
+    // Persistent file handles for better performance (instead of creating new ones each write)
+    private var videoFileHandle: FileHandle?
+    private var audioFileHandle: FileHandle?
+    
 //    var recordingType = RecordingType.Camera_Microphone
     
     var inputCommands: [String] = []
@@ -166,7 +170,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
     private let audioBufferLock = NSLock()
     private var audioDataBuffer = Data()
     
-    private var delegate: FFmpegUtilsDelegate?
+    private weak var delegate: FFmpegUtilsDelegate?
     
     init(outputFormat: String, url: String, delegate: FFmpegUtilsDelegate?, options: [FFLivekitSettings]) {
         self.options = FFmpegOptions(settings: options)
@@ -223,7 +227,10 @@ class FFmpegUtils: NSObject, SourceDelegate {
     // Remove observers when the view controller is deallocated
     deinit {
         NotificationCenter.default.removeObserver(self)
+        stopTimer()
+        closePipes()
         videoDataBuffer.removeAll()
+        audioDataBuffer.removeAll()
     }
     
     
@@ -308,26 +315,54 @@ class FFmpegUtils: NSObject, SourceDelegate {
         // open the videopipe so that ffempg doesnot closes when the video pipe receives EOF
         videoFileDescriptor = open(videoPipe!, O_RDWR)
         audioFileDescriptor = open(audioPipe!, O_RDWR)
-        //        audioFileDescriptor = open(audioPipe!, O_RDWR)
+        
+        // Create persistent file handles for better performance
+        if videoFileDescriptor >= 0 {
+            videoFileHandle = FileHandle(fileDescriptor: videoFileDescriptor, closeOnDealloc: false)
+        }
+        if audioFileDescriptor >= 0 {
+            audioFileHandle = FileHandle(fileDescriptor: audioFileDescriptor, closeOnDealloc: false)
+        }
     }
     
     private func closePipes() {
+        // Close file handles first
+        videoFileHandle?.closeFile()
+        audioFileHandle?.closeFile()
+        videoFileHandle = nil
+        audioFileHandle = nil
+        
+        // Then close file descriptors
         if videoFileDescriptor != nil {
             close(videoFileDescriptor)
+            videoFileDescriptor = nil
         }
         if audioFileDescriptor != nil {
             close(audioFileDescriptor)
+            audioFileDescriptor = nil
         }
-        FFmpegKitConfig.closeFFmpegPipe(videoPipe)
-        FFmpegKitConfig.closeFFmpegPipe(audioPipe)
+        
+        // Finally close FFmpeg pipes
+        if let videoPipe = videoPipe {
+            FFmpegKitConfig.closeFFmpegPipe(videoPipe)
+        }
+        if let audioPipe = audioPipe {
+            FFmpegKitConfig.closeFFmpegPipe(audioPipe)
+        }
     }
     
     func appendToVideoBuffer(data: Data) {
         videoFeedThread.sync {
             self.videoBufferLock.lock()
-            /// Max bytes buffer 100MB
-            if self.videoDataBuffer.count > (100 * 1000000) {
-                self.videoDataBuffer.removeAll()
+            /// Max bytes buffer 100MB - drop oldest data if exceeded (FIFO)
+            let maxBufferSize = 100 * 1000000
+            if self.videoDataBuffer.count > maxBufferSize {
+                // Remove oldest data to make room (keep last 50MB)
+                let keepSize = 50 * 1000000
+                if self.videoDataBuffer.count > keepSize {
+                    let removeCount = self.videoDataBuffer.count - keepSize
+                    self.videoDataBuffer.removeFirst(removeCount)
+                }
             }
             self.videoDataBuffer.append(data)
             self.videoBufferLock.unlock()
@@ -337,9 +372,15 @@ class FFmpegUtils: NSObject, SourceDelegate {
     func appendToAudioBuffer(data: Data) {
         audioFeedThread.sync {
             self.audioBufferLock.lock()
-            /// Max bytes buffer 100MB
-            if self.audioDataBuffer.count > (50 * 1000000) {
-                self.audioDataBuffer.removeAll()
+            /// Max bytes buffer 50MB - drop oldest data if exceeded (FIFO)
+            let maxBufferSize = 50 * 1000000
+            if self.audioDataBuffer.count > maxBufferSize {
+                // Remove oldest data to make room (keep last 25MB)
+                let keepSize = 25 * 1000000
+                if self.audioDataBuffer.count > keepSize {
+                    let removeCount = self.audioDataBuffer.count - keepSize
+                    self.audioDataBuffer.removeFirst(removeCount)
+                }
             }
             self.audioDataBuffer.append(data)
             self.audioBufferLock.unlock()
@@ -347,32 +388,50 @@ class FFmpegUtils: NSObject, SourceDelegate {
     }
     
     func writeToVideoPipe(data: Data) {
-        if let currentPipe = self.videoPipe, let fileHandle = try? FileHandle(forWritingTo: URL(fileURLWithPath: currentPipe)) {
-            //                print("writing to the data \(data)")
-            // Convert the message to data
+        // Use persistent file handle if available, otherwise fall back to creating new one
+        if let fileHandle = videoFileHandle {
+            do {
+                if #available(iOS 13.4, *) {
+                    try fileHandle.write(contentsOf: data)
+                } else {
+                    fileHandle.write(data)
+                }
+            } catch {
+                print("Error writing video to pipe: \(error.localizedDescription)")
+            }
+        } else if let currentPipe = self.videoPipe, let fileHandle = try? FileHandle(forWritingTo: URL(fileURLWithPath: currentPipe)) {
+            // Fallback: create new file handle (original behavior)
             if #available(iOS 13.4, *) {
                 try? fileHandle.write(contentsOf: data)
             } else {
                 fileHandle.write(data)
             }
             fileHandle.closeFile()
-            print("Video written successfully")
         } else {
             print("Failed to open video file handle for writing")
         }
     }
     
     func writeToAudioPipe(data: Data) {
-        if let currentPipe = self.audioPipe, let fileHandle = try? FileHandle(forWritingTo: URL(fileURLWithPath: currentPipe)) {
-            //                print("writing audio to the data \(data)")
-            // Convert the message to data
+        // Use persistent file handle if available, otherwise fall back to creating new one
+        if let fileHandle = audioFileHandle {
+            do {
+                if #available(iOS 13.4, *) {
+                    try fileHandle.write(contentsOf: data)
+                } else {
+                    fileHandle.write(data)
+                }
+            } catch {
+                print("Error writing audio to pipe: \(error.localizedDescription)")
+            }
+        } else if let currentPipe = self.audioPipe, let fileHandle = try? FileHandle(forWritingTo: URL(fileURLWithPath: currentPipe)) {
+            // Fallback: create new file handle (original behavior)
             if #available(iOS 13.4, *) {
                 try? fileHandle.write(contentsOf: data)
             } else {
                 fileHandle.write(data)
             }
             fileHandle.closeFile()
-            print("Audio written successfully")
         } else {
             print("Failed to open audio file handle for writing")
         }
@@ -424,7 +483,7 @@ class FFmpegUtils: NSObject, SourceDelegate {
     private func executeCommand() {
         let inputs = self.inputCommands.joined(separator: " ").replacingOccurrences(of: "%videoPipe%", with: videoPipe!).replacingOccurrences(of: "%audioPipe%", with: audioPipe!)
         let encoders = self.encoders.joined(separator: " ")
-        let cmd = "-re \(inputs) \(encoders) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -vsync 1 -f \(outputFormat) \"\(url)\""
+        let cmd = "-re -thread_queue_size 512 \(inputs) \(encoders) \(generateVideoOutputCommand()) \(generateAudioOutputCommand()) -fps_mode cfr -f \(outputFormat) \"\(url)\""
         execute(cmd: cmd)
     }
     
@@ -518,5 +577,6 @@ class FFmpegUtils: NSObject, SourceDelegate {
                 
             }
         }
+
     }
 }
